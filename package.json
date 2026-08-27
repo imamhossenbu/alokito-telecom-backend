@@ -37,6 +37,7 @@
     "pino-http": "^10.2.0",
     "rate-limit-redis": "^4.2.0",
     "swagger-ui-express": "^5.0.1",
+    "tesseract.js": "^7.0.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {
