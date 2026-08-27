@@ -2,9 +2,11 @@ import { createApp } from "./app";
 import { env } from "./config/env";
 import { logger } from "./config/logger";
 import { connectDatabase, disconnectDatabase } from "./config/database";
+import { verifyEmailTransport } from "./integrations/email/mailer.config";
 
 async function bootstrap(): Promise<void> {
   await connectDatabase();
+  void verifyEmailTransport(); // non-blocking; logs a warning on failure instead of stopping boot
 
   const app = createApp();
 

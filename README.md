@@ -3,10 +3,26 @@
 Telecom offer purchasing platform backend for the Bangladeshi market.
 Node.js + TypeScript + Express + MongoDB/Mongoose.
 
+## API docs (Swagger)
+
+Auto-generated from the same Zod schemas used for request validation —
+never hand-written, never drifts from the real contract.
+
+- Swagger UI: `GET /api/docs`
+- Raw OpenAPI 3.0 JSON: `GET /api/docs/openapi.json`
+
+**Convention for every future module:** import `z` from
+`src/shared/utils/zod.ts` (not raw `'zod'`) in any schema file that needs
+`.openapi(...)`, then add a `*.docs.ts` (or inline in `*.schema.ts`) file
+that calls `registry.registerPath({...})` from `src/docs/openapi-registry.ts`.
+Add one `import '...'` line for that file to `src/docs/register-all.ts` —
+see `src/modules/health.docs.ts` for the reference example.
+
 ## What's in this phase
 
 - `src/config` — env validation (Zod), logger (Pino, with secret redaction), MongoDB connection
 - `src/integrations/storage` — **Cloudinary** (free tier) for NID/profile images: private "authenticated" delivery + signed URLs for NID, public URLs for profile photos. Swappable behind a `StorageProvider` interface.
+- `src/integrations/email` — **Nodemailer** over SMTP (works with Gmail App Passwords, Brevo free tier, Mailtrap for dev, or any SMTP server). Swappable behind an `EmailProvider` interface.
 - `src/middleware` — requestId, auth (customer), admin, payment-device, validation (Zod), rate limiting, error handling, image upload (Multer, memory storage, 5MB/2-file limit, JPEG/PNG/WEBP only)
 - `src/shared` — error classes + error codes, API response envelope, pagination, money (integer poisha), ID generator, actor types
 - `src/app.ts` / `src/server.ts` — Express bootstrap, security headers (Helmet), CORS whitelist, graceful shutdown

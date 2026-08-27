@@ -15,6 +15,7 @@ import {
 } from "./middleware/error.middleware";
 import healthRoutes from "./modules/health.routes";
 import v1Router from "./routes/v1";
+import docsRouter, { docsEnabled } from "./docs/swagger.routes";
 
 export function createApp(): Application {
   const app = express();
@@ -23,9 +24,12 @@ export function createApp(): Application {
   app.set("trust proxy", 1);
 
   // --- Security headers (spec section 119) ---
+  // CSP is left off: this is a JSON API, not an HTML-serving app, so the
+  // XSS-mitigation value of CSP is minimal here — and a default CSP would
+  // block Swagger UI's inline scripts/styles at /api/docs.
   app.use(
     helmet({
-      contentSecurityPolicy: env.isProduction ? undefined : false,
+      contentSecurityPolicy: false,
       crossOriginResourcePolicy: { policy: "same-site" },
     }),
   );
@@ -68,6 +72,12 @@ export function createApp(): Application {
 
   // --- Health checks (unversioned, no rate limit) ---
   app.use(healthRoutes);
+
+  // --- API docs (Swagger UI + raw OpenAPI JSON), auto-generated from
+  // the same Zod schemas used for request validation ---
+  if (docsEnabled) {
+    app.use("/api/docs", docsRouter);
+  }
 
   // --- Versioned API (spec section 87) ---
   app.use("/api/v1", v1Router);
