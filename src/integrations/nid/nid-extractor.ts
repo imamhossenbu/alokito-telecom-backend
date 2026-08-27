@@ -1,6 +1,7 @@
 import Tesseract from "tesseract.js";
 import { storageProvider } from "../storage/cloudinary.provider";
 import { logger } from "../../config/logger";
+import { ValidationError } from "../../shared/errors/app-error";
 
 export interface NidExtractionResult {
   nidNumber: string;
@@ -128,12 +129,16 @@ export const nidExtractor = {
         address = parsedAddress;
       }
     } catch (err) {
-      logger.error({ err }, "Local Tesseract OCR error, falling back to simulated extraction values");
+      logger.error({ err }, "Local Tesseract OCR error during NID extraction");
+      throw new ValidationError(
+        "NID OCR extraction failed. Please ensure the uploaded images are clear and readable."
+      );
     }
 
-    // Default values if OCR parser failed to extract specific fields
     if (!nidNumber) {
-      nidNumber = "3289047124"; // Mock fallback
+      throw new ValidationError(
+        "Could not read NID number from the images. Please ensure the uploaded NID photo is clear and try again."
+      );
     }
 
     return {
@@ -142,10 +147,10 @@ export const nidExtractor = {
       address,
       name,
       confidence: {
-        nidNumber: nidNumber === "3289047124" ? 0.5 : frontConfidence,
+        nidNumber: frontConfidence,
         dateOfBirth: frontConfidence,
-        address: address.includes("House 45") ? 0.5 : backConfidence,
-        name: name === (fallbackName || "Imam Hossen") ? 0.5 : frontConfidence,
+        address: backConfidence,
+        name: frontConfidence,
       },
     };
   },

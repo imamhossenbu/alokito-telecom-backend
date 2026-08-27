@@ -181,15 +181,11 @@ export const authService = {
     // Extract NID info automatically from uploaded NID images
     let extracted = { nidNumber: "", dateOfBirth: new Date(0), address: "", name: body.name };
     if (nidImages.front && nidImages.back) {
-      try {
-        extracted = await nidExtractor.extractNid(
-          nidImages.front,
-          nidImages.back,
-          body.name
-        );
-      } catch (err) {
-        logger.error({ err }, "NID OCR Extraction failed during registration");
-      }
+      extracted = await nidExtractor.extractNid(
+        nidImages.front,
+        nidImages.back,
+        body.name
+      );
     }
 
     const registrationSession = await authRepository.createRegistrationSession({
