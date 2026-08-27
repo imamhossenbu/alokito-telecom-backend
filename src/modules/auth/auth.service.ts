@@ -29,7 +29,7 @@ import {
   signPurposeToken,
   verifyPurposeToken,
 } from "../../shared/utils/purpose-token";
-import { emailProvider } from "../../integrations/email/nodemailer.provider";
+import { queueEmail } from "../../jobs/email.job";
 import { otpEmailTemplate } from "../../integrations/email/templates";
 import { env } from "../../config/env";
 import { logger } from "../../config/logger";
@@ -108,15 +108,14 @@ async function issueOtp(params: {
   });
 
   try {
-    await emailProvider.send({ to: params.email, subject, html });
+    await queueEmail({ to: params.email, subject, html });
   } catch (err) {
-    // Don't fail the whole request just because the email send failed here
+    // Don't fail the whole request just because the email queue failed here
     // — the OTP session still exists and /resend can retry. Logged loudly
-    // so ops notices a systemic SMTP outage quickly (spec section 90 notes
-    // this should eventually move to a retryable background job).
+    // so ops notices a systemic outage quickly.
     logger.error(
       { err, email: params.email, purpose: params.purpose },
-      "Failed to send OTP email",
+      "Failed to queue OTP email",
     );
   }
 

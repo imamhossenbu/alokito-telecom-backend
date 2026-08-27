@@ -3,10 +3,17 @@ import { env } from "./config/env";
 import { logger } from "./config/logger";
 import { connectDatabase, disconnectDatabase } from "./config/database";
 import { verifyEmailTransport } from "./integrations/email/mailer.config";
+import { emailWorker } from "./jobs/email.worker";
+import { redisClient } from "./config/redis";
 
 async function bootstrap(): Promise<void> {
   await connectDatabase();
   void verifyEmailTransport(); // non-blocking; logs a warning on failure instead of stopping boot
+
+  // Side-effect to ensure worker starts if Redis is configured
+  if (emailWorker) {
+    logger.info("BullMQ emailWorker is active and listening");
+  }
 
   const app = createApp();
 
@@ -19,6 +26,17 @@ async function bootstrap(): Promise<void> {
   const shutdown = async (signal: string): Promise<void> => {
     logger.info(`${signal} received, shutting down gracefully...`);
     server.close(async () => {
+      // 1. Close BullMQ worker
+      if (emailWorker) {
+        logger.info("Closing email worker...");
+        await emailWorker.close();
+      }
+      // 2. Close Redis client
+      if (redisClient) {
+        logger.info("Disconnecting Redis...");
+        await redisClient.quit();
+      }
+      // 3. Disconnect database
       await disconnectDatabase();
       logger.info("Shutdown complete");
       process.exit(0);

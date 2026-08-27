@@ -16,7 +16,7 @@ import {
 } from "../../shared/utils/pin";
 import { normalizeEmail, normalizeBdPhone } from "../../shared/utils/normalize";
 import { storageProvider } from "../../integrations/storage/cloudinary.provider";
-import { emailProvider } from "../../integrations/email/nodemailer.provider";
+import { queueEmail } from "../../jobs/email.job";
 import { temporaryPinEmailTemplate } from "../../integrations/email/templates";
 import { env } from "../../config/env";
 import { logger } from "../../config/logger";
@@ -55,9 +55,9 @@ function serializeUser(user: {
 async function sendTemporaryPinEmail(email: string, temporaryPin: string) {
   const { subject, html } = temporaryPinEmailTemplate({ email, temporaryPin });
   try {
-    await emailProvider.send({ to: email, subject, html });
+    await queueEmail({ to: email, subject, html });
   } catch (err) {
-    logger.error({ err, email }, "Failed to send temporary PIN email");
+    logger.error({ err, email }, "Failed to queue temporary PIN email");
   }
 }
 

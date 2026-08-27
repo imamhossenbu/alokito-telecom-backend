@@ -15,7 +15,7 @@ import { hashPin, generateTemporaryPin } from "../../shared/utils/pin";
 import { normalizeEmail, normalizeBdPhone } from "../../shared/utils/normalize";
 import { buildPaginationMeta } from "../../shared/pagination/paginate";
 import { pinResetEmailTemplate } from "../../integrations/email/templates";
-import { emailProvider } from "../../integrations/email/nodemailer.provider";
+import { queueEmail } from "../../jobs/email.job";
 import { logger } from "../../config/logger";
 import type {
   ListUsersQuery,
@@ -178,9 +178,9 @@ export const adminUserService = {
 
     const { subject, html } = pinResetEmailTemplate({ temporaryPin });
     try {
-      await emailProvider.send({ to: user.email, subject, html });
+      await queueEmail({ to: user.email, subject, html });
     } catch (err) {
-      logger.error({ err, userId: id }, "Failed to send PIN reset email");
+      logger.error({ err, userId: id }, "Failed to queue PIN reset email");
     }
   },
 
