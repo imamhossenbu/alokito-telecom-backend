@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { adminUserService } from "./adminuser.service";
+import { adminUserService } from "./adminUser.service";
 import { sendSuccess, sendCreated } from "../../shared/utils/api-response";
 import { UnauthorizedError } from "../../shared/errors/app-error";
 import {

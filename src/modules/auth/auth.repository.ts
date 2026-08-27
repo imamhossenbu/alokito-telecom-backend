@@ -28,6 +28,9 @@ export const authRepository = {
     nidFrontImageFormat?: string;
     nidBackImagePublicId?: string;
     nidBackImageFormat?: string;
+    nidNumber?: string;
+    dateOfBirth?: Date;
+    address?: string;
   }) {
     const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 min to complete registration
     return RegistrationSessionModel.create({

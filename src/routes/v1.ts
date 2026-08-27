@@ -20,25 +20,26 @@ router.use("/auth", authRoutes);
 router.use("/users", userRoutes);
 router.use("/admin", adminRoutes);
 
-// Module routers are mounted here as each phase is implemented, e.g.:
-//
-// import operatorRoutes from '../modules/operators/operator.routes';
-// import offerRoutes from '../modules/offers/offer.routes';
-// import driveOfferRoutes from '../modules/driveOffers/driveOffer.routes';
-// import walletRoutes from '../modules/wallets/wallet.routes';
-// import topupRoutes from '../modules/topups/topup.routes';
-// import paymentDeviceRoutes from '../modules/paymentDevices/paymentDevice.routes';
-// import orderRoutes from '../modules/orders/order.routes';
-// import refundRoutes from '../modules/refunds/refund.routes';
-// import notificationRoutes from '../modules/notifications/notification.routes';
-//
-// router.use('/operators', operatorRoutes);
-// router.use('/offers', offerRoutes);
-// router.use('/drive-offers', driveOfferRoutes);
-// router.use('/wallet', walletRoutes);
-// router.use('/payment-devices', paymentDeviceRoutes);
-// router.use('/orders', orderRoutes);
-// router.use('/refunds', refundRoutes);
-// router.use('/notifications', notificationRoutes);
+import operatorRoutes from "../modules/operators/operator.routes";
+import offerRoutes from "../modules/offers/offer.routes";
+import driveOfferRoutes from "../modules/driveOffers/driveOffer.routes";
+import walletRoutes from "../modules/wallets/wallet.routes";
+import topupRoutes from "../modules/topups/topup.routes";
+import paymentDeviceRoutes from "../modules/paymentDevices/paymentDevice.routes";
+import paymentMethodsRoutes from "../modules/paymentDevices/payment-methods.routes";
+import orderRoutes from "../modules/orders/order.routes";
+import refundRoutes from "../modules/refunds/refund.routes";
+import notificationRoutes from "../modules/notifications/notification.routes";
+
+router.use("/operators", operatorRoutes);
+router.use("/offers", offerRoutes);
+router.use("/drive-offers", driveOfferRoutes);
+router.use("/wallet/topups", topupRoutes);
+router.use("/wallet", walletRoutes);
+router.use("/payment-devices", paymentDeviceRoutes);
+router.use("/payment-methods", paymentMethodsRoutes);
+router.use("/orders", orderRoutes);
+router.use("/refunds", refundRoutes);
+router.use("/notifications", notificationRoutes);
 
 export default router;

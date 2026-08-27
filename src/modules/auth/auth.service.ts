@@ -3,6 +3,7 @@ import { authRepository } from "./auth.repository";
 import { userRepository } from "../users/user.repository";
 import { walletRepository } from "../wallets/wallet.repository";
 import { identityRepository } from "../identities/identity.repository";
+import { nidExtractor } from "../../integrations/nid/nid-extractor";
 import { VerificationPurpose } from "./verificationSession.model";
 import { CreatedByType } from "../users/user.model";
 import { AccountStatus } from "../../shared/enums";
@@ -177,6 +178,20 @@ export const authService = {
 
     const pinHash = await hashPin(body.pin);
 
+    // Extract NID info automatically from uploaded NID images
+    let extracted = { nidNumber: "", dateOfBirth: new Date(0), address: "", name: body.name };
+    if (nidImages.front && nidImages.back) {
+      try {
+        extracted = await nidExtractor.extractNid(
+          nidImages.front,
+          nidImages.back,
+          body.name
+        );
+      } catch (err) {
+        logger.error({ err }, "NID OCR Extraction failed during registration");
+      }
+    }
+
     const registrationSession = await authRepository.createRegistrationSession({
       name: body.name,
       email: body.email,
@@ -187,9 +202,9 @@ export const authService = {
       nidFrontImageFormat: nidImages.frontFormat,
       nidBackImagePublicId: nidImages.back,
       nidBackImageFormat: nidImages.backFormat,
-      // NID number/DOB/address extraction (OCR) is wired in Phase 3 via the
-      // NidExtractor interface (spec section 77) — until then these stay
-      // unset and the customer's identity record is created PENDING.
+      nidNumber: extracted.nidNumber,
+      dateOfBirth: extracted.dateOfBirth,
+      address: extracted.address,
     });
 
     const verificationSessionId = await issueOtp({
@@ -205,6 +220,12 @@ export const authService = {
       registrationId: registrationSession._id.toString(),
       verificationRequired: true,
       emailMasked: maskEmail(body.email),
+      extractedNid: {
+        nidNumber: extracted.nidNumber,
+        dateOfBirth: extracted.dateOfBirth,
+        address: extracted.address,
+        name: extracted.name,
+      },
     };
   },
 

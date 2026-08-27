@@ -1,0 +1,40 @@
+import { z } from "../../shared/utils/zod";
+import { DriveOfferStatus } from "./driveOffer.model";
+
+export const createDriveOfferBodySchema = z.object({
+  operatorId: z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid operatorId"),
+  offerName: z.string().min(2).max(200),
+  category: z.enum(["INTERNET", "MINUTES", "BUNDLE", "SMS", "CALL_RATE", "OTHER"]),
+  offerType: z.string().min(1),
+  offerValue: z.string().min(1),
+  validity: z.string().min(1),
+  purchasePrice: z.number().min(0), // BDT
+  sellingPrice: z.number().min(0), // BDT
+  activationCode: z.string().optional(),
+  description: z.string().optional(),
+  status: z.enum(["ACTIVE", "INACTIVE"]).default(DriveOfferStatus.ACTIVE),
+});
+export type CreateDriveOfferBody = z.infer<typeof createDriveOfferBodySchema>;
+
+export const updateDriveOfferBodySchema = z.object({
+  operatorId: z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid operatorId").optional(),
+  offerName: z.string().min(2).max(200).optional(),
+  category: z.enum(["INTERNET", "MINUTES", "BUNDLE", "SMS", "CALL_RATE", "OTHER"]).optional(),
+  offerType: z.string().min(1).optional(),
+  offerValue: z.string().min(1).optional(),
+  validity: z.string().min(1).optional(),
+  purchasePrice: z.number().min(0).optional(), // BDT
+  sellingPrice: z.number().min(0).optional(), // BDT
+  activationCode: z.string().optional(),
+  description: z.string().optional(),
+  status: z.enum(["ACTIVE", "INACTIVE"]).optional(),
+});
+export type UpdateDriveOfferBody = z.infer<typeof updateDriveOfferBodySchema>;
+
+export const listDriveOffersQuerySchema = z.object({
+  operatorId: z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid operatorId").optional(),
+  category: z.enum(["INTERNET", "MINUTES", "BUNDLE", "SMS", "CALL_RATE", "OTHER"]).optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+});
+export type ListDriveOffersQuery = z.infer<typeof listDriveOffersQuerySchema>;
