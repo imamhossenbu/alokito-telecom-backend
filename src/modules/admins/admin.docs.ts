@@ -30,3 +30,36 @@ registry.registerPath({
     ...commonErrorResponses,
   },
 });
+
+registry.registerPath({
+  method: "get",
+  path: "/admin/dashboard",
+  tags: ["Admin"],
+  summary: "Get admin dashboard KPI metrics",
+  security: [{ AdminAuth: [] }],
+  responses: {
+    200: {
+      description: "Dashboard KPIs",
+      content: {
+        "application/json": {
+          schema: z.object({
+            totalUsers: z.number(),
+            activeUsers: z.number(),
+            blockedUsers: z.number(),
+            newUsersToday: z.number(),
+            pendingTopUps: z.number(),
+            pendingOrders: z.number(),
+            processingOrders: z.number(),
+            completedOrdersToday: z.number(),
+            refundsPending: z.number(),
+            connectedPaymentDevices: z.number(),
+            offlinePaymentDevices: z.number(),
+            walletTopupVolume: z.number(),
+            purchaseVolume: z.number(),
+          }),
+        },
+      },
+    },
+    ...commonErrorResponses,
+  },
+});
