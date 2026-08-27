@@ -2,7 +2,7 @@ import { Response } from "express";
 
 interface SuccessOptions<T> {
   data: T;
-  meta?: Record<string, unknown>;
+  meta?: object;
   statusCode?: number;
 }
 
@@ -22,7 +22,7 @@ export function sendSuccess<T>(
 export function sendCreated<T>(
   res: Response,
   data: T,
-  meta?: Record<string, unknown>,
+  meta?: object,
 ): Response {
   return sendSuccess(res, { data, meta, statusCode: 201 });
 }

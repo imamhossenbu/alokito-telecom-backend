@@ -1,5 +1,6 @@
 import { Router } from "express";
 import authRoutes from "../modules/auth/auth.routes";
+import userRoutes from "../modules/users/user.routes";
 import adminRoutes from "../modules/admins/admin.routes";
 
 const router = Router();
@@ -16,11 +17,11 @@ router.get("/", (_req, res) => {
 });
 
 router.use("/auth", authRoutes);
+router.use("/users", userRoutes);
 router.use("/admin", adminRoutes);
 
 // Module routers are mounted here as each phase is implemented, e.g.:
 //
-// import userRoutes from '../modules/users/user.routes';
 // import operatorRoutes from '../modules/operators/operator.routes';
 // import offerRoutes from '../modules/offers/offer.routes';
 // import driveOfferRoutes from '../modules/driveOffers/driveOffer.routes';
@@ -31,7 +32,6 @@ router.use("/admin", adminRoutes);
 // import refundRoutes from '../modules/refunds/refund.routes';
 // import notificationRoutes from '../modules/notifications/notification.routes';
 //
-// router.use('/users', userRoutes);
 // router.use('/operators', operatorRoutes);
 // router.use('/offers', offerRoutes);
 // router.use('/drive-offers', driveOfferRoutes);

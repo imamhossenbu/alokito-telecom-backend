@@ -11,6 +11,8 @@
 import "../modules/health.docs";
 import "../modules/auth/auth.docs";
 import "../modules/admins/admin.docs";
+import "../modules/admins/adminUser.docs";
+import "../modules/users/user.docs";
 
 // import '../modules/users/user.schema';
 // import '../modules/operators/operator.schema';
