@@ -2,7 +2,7 @@
 
 A high-performance, secure, and production-ready telecom offer purchasing platform backend designed for the Bangladeshi market. It manages user authentication, automated wallet top-ups via SMS listening devices, package operator/offer configurations, order state machine lifecycles, and audit logging.
 
-Built with **Node.js**, **TypeScript**, **Express**, and **MongoDB / Mongoose**.
+Built with **Node.js**, **TypeScript**, **Express**, **MongoDB / Mongoose**, **Redis / BullMQ**, and **Socket.io**.
 
 ---
 
@@ -10,9 +10,12 @@ Built with **Node.js**, **TypeScript**, **Express**, and **MongoDB / Mongoose**.
 - **Runtime & Language**: Node.js + TypeScript
 - **Framework**: Express (with async error handler wrappers and security headers via Helmet)
 - **Database**: MongoDB + Mongoose (uses Multi-document ACID Transactions for financial integrity; requires a replica set configuration)
+- **Caching & Rate Limiting**: Redis (`ioredis` + `rate-limit-redis` for distributed rate limiting)
+- **Background Jobs**: BullMQ (offloads slow operations like SMTP email sending to background queues with automatic exponential retries)
+- **Real-Time Communication**: Socket.io (WebSocket server with JWT authentication for instant push notifications)
 - **Image Storage**: Cloudinary (handles private NID verification uploads and public user profiles)
+- **Local OCR Engine**: Tesseract.js (extracts NID parameters locally without third-party API dependencies)
 - **Email Delivery**: Nodemailer SMTP (e.g., Brevo, Mailtrap, or Gmail App Passwords)
-- **Background Workers**: BullMQ + Redis (for queue handling)
 - **Documentation**: Swagger UI auto-generated from Zod schemas
 
 ---
@@ -23,9 +26,10 @@ Built with **Node.js**, **TypeScript**, **Express**, and **MongoDB / Mongoose**.
 The codebase follows a modular design pattern grouped by business features:
 ```
 src/
-├── config/              # Environment configurations & MongoDB connection setup
+├── config/              # Environment configurations, MongoDB, Redis, and Socket.io connection setup
 ├── docs/                # OpenAPI/Swagger compilation registry and routes
-├── integrations/        # External services (Cloudinary Storage, Nodemailer, NID verification)
+├── integrations/        # External services (Cloudinary Storage, Nodemailer, NID verification helper)
+├── jobs/                # Background queues and workers (BullMQ)
 ├── middleware/          # Global & route-specific middlewares (auth, upload, rate limits, validation)
 ├── modules/             # Business modules (controller, service, repository, model, schema, docs)
 │   ├── admins/          # Admin accounts, dashboard, and child customer creation logic
@@ -36,7 +40,7 @@ src/
 │   ├── offers/          # General mobile packs
 │   ├── operators/       # Telecom operators (Grameenphone, Robi, Banglalink, Teletalk, etc.)
 │   ├── orders/          # Core order lifecycle state machine
-│   ├── paymentDevices/  # SMS Listener device pairings, heartsbeats, and events
+│   ├── paymentDevices/  # SMS Listener device pairings, heartbeats, and events
 │   ├── refunds/         # Auto and manual order refund allocations
 │   ├── topups/          # Wallet topup requests and auto SMS verification
 │   ├── users/           # Customer accounts, profiles, and NID verification
@@ -54,7 +58,11 @@ src/
 2. **Double-Entry Ledger Pattern**: User wallets store balances, but any mutations (deposits, purchases, refunds) must write a corresponding document to the `WalletTransaction` collection inside an ACID Mongoose transaction session.
 3. **SMS Verification Normalizer**: Relies on a pattern-matching pipeline to parse incoming transaction SMS formats from bKash, Nagad, and Rocket to match deposits against customer-claimed transaction IDs.
 4. **Trusted Device Validation**: Unrecognized device IDs logging into customer accounts trigger an OTP requirement before access is authorized.
-5. **Swagger Integration**: Validation schemas defined in Zod (`*.schema.ts`) are registered using the OpenAPI Registry (`*.docs.ts`). Any modifications to schemas automatically keep the Swagger documentation in sync.
+5. **Distributed Rate Limiting**: Scoped using `rate-limit-redis` to allow horizontal scalability across multiple server instances.
+6. **Asynchronous Background Jobs**: BullMQ processes email tasks (OTPs, temporary PINs) in the background. This ensures API calls return in milliseconds rather than waiting for SMTP handshakes.
+7. **Real-Time Push Notifications**: A Socket.io listener accepts authenticated WebSocket connections. Connections join a room keyed by the user's ID (`socket.join(userId)`) to stream instant updates.
+8. **Local NID Extraction**: Tesseract.js processes uploaded NID images on the Node.js server. If the image is blurry and a valid NID cannot be read, the server rejects registration with a `ValidationError` (422) asking the user to upload clearer photos.
+9. **Swagger Integration**: Validation schemas defined in Zod (`*.schema.ts`) are registered using the OpenAPI Registry (`*.docs.ts`). Any modifications to schemas automatically keep the Swagger documentation in sync.
 
 ---
 
@@ -65,11 +73,11 @@ src/
 | `NODE_ENV` | `development \| production \| test` | `development` | Environment mode |
 | `PORT` | `number` | `4000` | Server listening port |
 | `MONGODB_URI` | `string` | *Required* | MongoDB connection URI (Replica Set required) |
+| `REDIS_URL` | `string` | *Required* | Redis connection URI (e.g. `redis://127.0.0.1:6379`) |
 | `JWT_ACCESS_SECRET` | `string (>= 16 chars)` | *Required* | Secret key for access token generation |
 | `JWT_ACCESS_EXPIRES` | `string` | `15m` | Lifetime of an access token |
 | `JWT_REFRESH_SECRET` | `string (>= 16 chars)` | *Required* | Secret key for refresh token generation |
 | `JWT_REFRESH_EXPIRES` | `string` | `30d` | Lifetime of a refresh token |
-| `REDIS_URL` | `string` | *Optional* | Connection URI for Redis |
 | `SMTP_HOST` | `string` | *Required* | SMTP host address for email delivery |
 | `SMTP_PORT` | `number` | `587` | SMTP port |
 | `SMTP_SECURE` | `boolean` | `false` | Secure connection (SSL/TLS) |
@@ -105,7 +113,7 @@ All paths below are prefixed with `/api/v1`.
 
 | Endpoint | Method | Auth Required | Description | Request Body Example |
 | :--- | :--- | :--- | :--- | :--- |
-| `/auth/register` | `POST` | None | Self-register customer. Accepts NID multipart uploads. | `Multipart/Form-Data`: `phoneNumber`, `pin`, `fullName`, `email`, `nidFrontImage`, `nidBackImage` |
+| `/auth/register` | `POST` | None | Self-register customer. Triggers local Tesseract OCR. | `Multipart/Form-Data`: `phoneNumber`, `pin`, `fullName`, `email`, `nidFrontImage`, `nidBackImage` |
 | `/auth/register/resend` | `POST` | None | Resends registration OTP. | `{"phoneNumber": "017XXXXXXXX"}` |
 | `/auth/register/verify` | `POST` | None | Confirms registration and creates account wallet. | `{"phoneNumber": "017XXXXXXXX", "otp": "123456"}` |
 | `/auth/login` | `POST` | None | Login customer. Handles trusted device detection. | `{"phoneNumber": "017XXXXXXXX", "pin": "123456", "deviceId": "xxx", "deviceName": "Pixel 7"}` |
@@ -182,9 +190,11 @@ Requires **Customer** authentication headers.
 
 ---
 
-### 🔔 6. Notifications Module (`/notifications`)
+### 🔔 6. Notifications Module (`/notifications`) & WebSockets
 
 Requires **Customer** authentication headers.
+
+#### REST API Endpoints:
 
 | Endpoint | Method | Description | Request Body Example |
 | :--- | :--- | :--- | :--- |
@@ -192,6 +202,25 @@ Requires **Customer** authentication headers.
 | `/notifications/:id` | `GET` | Get details of specific notification. | *None* |
 | `/notifications/:id/read` | `POST` | Mark notification as read. | *None* |
 | `/notifications/read-all` | `POST` | Mark all inbox items as read. | *None* |
+
+#### Real-Time WebSocket (Socket.io) Integration:
+Clients can connect to the Socket.io server to receive real-time notifications:
+- **WebSocket URL**: `ws://<host>:<port>` (e.g. `ws://localhost:4000`)
+- **Connection Handshake Authentication**: You must provide a valid customer JWT access token.
+  - *Option A (Auth handshake)*: Pass token in `auth.token`:
+    ```javascript
+    const socket = io("ws://localhost:4000", { auth: { token: "YOUR_JWT_ACCESS_TOKEN" } });
+    ```
+  - *Option B (Query param)*: Pass token in connection query:
+    ```javascript
+    const socket = io("ws://localhost:4000?token=YOUR_JWT_ACCESS_TOKEN");
+    ```
+- **Real-Time Event**: Subscribed clients will receive live notification payloads on the **`new_notification`** event channel:
+  ```javascript
+  socket.on("new_notification", (notification) => {
+    console.log("New Notification received:", notification);
+  });
+  ```
 
 ---
 
@@ -222,7 +251,7 @@ Requires **Admin** authentication headers (`Authorization: Bearer <admin_jwt>`).
 - `PATCH /admin/users/:id` - Update user role, status or details.
 - `POST /admin/users/:id/block` - Restrict customer from logging in or making purchases.
 - `POST /admin/users/:id/unblock` - Unblock a customer.
-- `POST /admin/users/:id/reset-pin` - Direct overwrite of customer's PIN.
+- `POST /admin/users/:id/reset-pin` - Direct overwrite of customer's PIN (triggers temporary PIN email background job).
 - `DELETE /admin/users/:id` - Soft deletes user account database references.
 
 #### 📡 Operator Configurations
@@ -269,7 +298,7 @@ Requires **Admin** authentication headers (`Authorization: Bearer <admin_jwt>`).
 ### Prerequisites
 - Node.js (version >= 18.0.0)
 - MongoDB (Running replica-set mode locally or MongoDB Atlas instance)
-- Redis instance
+- Redis instance (Required for rate limiting and background queues)
 
 ### Installation
 1. Clone the repository and navigate to its folder.
