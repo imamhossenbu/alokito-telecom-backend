@@ -1,4 +1,6 @@
 import { Router } from "express";
+import authRoutes from "../modules/auth/auth.routes";
+import adminRoutes from "../modules/admins/admin.routes";
 
 const router = Router();
 
@@ -13,9 +15,11 @@ router.get("/", (_req, res) => {
   });
 });
 
+router.use("/auth", authRoutes);
+router.use("/admin", adminRoutes);
+
 // Module routers are mounted here as each phase is implemented, e.g.:
 //
-// import authRoutes from '../modules/auth/auth.routes';
 // import userRoutes from '../modules/users/user.routes';
 // import operatorRoutes from '../modules/operators/operator.routes';
 // import offerRoutes from '../modules/offers/offer.routes';
@@ -26,9 +30,7 @@ router.get("/", (_req, res) => {
 // import orderRoutes from '../modules/orders/order.routes';
 // import refundRoutes from '../modules/refunds/refund.routes';
 // import notificationRoutes from '../modules/notifications/notification.routes';
-// import adminRoutes from '../modules/admins/admin.routes';
 //
-// router.use('/auth', authRoutes);
 // router.use('/users', userRoutes);
 // router.use('/operators', operatorRoutes);
 // router.use('/offers', offerRoutes);
@@ -38,6 +40,5 @@ router.get("/", (_req, res) => {
 // router.use('/orders', orderRoutes);
 // router.use('/refunds', refundRoutes);
 // router.use('/notifications', notificationRoutes);
-// router.use('/admin', adminRoutes);
 
 export default router;

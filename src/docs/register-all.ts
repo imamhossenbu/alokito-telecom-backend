@@ -9,8 +9,9 @@
  * registered by the time it runs.
  */
 import "../modules/health.docs";
+import "../modules/auth/auth.docs";
+import "../modules/admins/admin.docs";
 
-// import '../modules/auth/auth.schema';
 // import '../modules/users/user.schema';
 // import '../modules/operators/operator.schema';
 // import '../modules/offers/offer.schema';
