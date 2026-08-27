@@ -5,6 +5,7 @@ import { connectDatabase, disconnectDatabase } from "./config/database";
 import { verifyEmailTransport } from "./integrations/email/mailer.config";
 import { emailWorker } from "./jobs/email.worker";
 import { redisClient } from "./config/redis";
+import { initSocketServer } from "./config/socket";
 
 async function bootstrap(): Promise<void> {
   await connectDatabase();
@@ -22,6 +23,9 @@ async function bootstrap(): Promise<void> {
       `🚀 Drive Offer API listening on port ${env.PORT} [${env.NODE_ENV}]`,
     );
   });
+
+  // Start Socket.io Server
+  initSocketServer(server);
 
   const shutdown = async (signal: string): Promise<void> => {
     logger.info(`${signal} received, shutting down gracefully...`);

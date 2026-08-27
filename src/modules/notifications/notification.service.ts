@@ -1,6 +1,8 @@
 import { Types } from "mongoose";
 import { NotificationModel } from "./notification.model";
 import { NotFoundError, AppError } from "../../shared/errors/app-error";
+import { sendRealTimeNotification } from "../../config/socket";
+import { logger } from "../../config/logger";
 
 export const notificationService = {
   async send(data: {
@@ -11,7 +13,22 @@ export const notificationService = {
     referenceType?: string;
     referenceId?: Types.ObjectId;
   }) {
-    return NotificationModel.create(data);
+    const notification = await NotificationModel.create(data);
+    try {
+      sendRealTimeNotification(data.userId.toString(), {
+        _id: notification._id.toString(),
+        type: notification.type,
+        title: notification.title,
+        message: notification.message,
+        referenceType: notification.referenceType,
+        referenceId: notification.referenceId?.toString(),
+        isRead: notification.isRead,
+        createdAt: notification.createdAt,
+      });
+    } catch (err) {
+      logger.error({ err, userId: data.userId }, "Failed to broadcast real-time notification");
+    }
+    return notification;
   },
 
   async getNotifications(userId: string, page = 1, limit = 20) {
