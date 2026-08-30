@@ -44,6 +44,7 @@ export function createApp(): Application {
 
   app.use(compression());
   app.use(cookieParser());
+  app.use("/public", express.static("public"));
 
   // --- Request body limits (spec section 121): prevent huge payload attacks ---
   app.use(express.json({ limit: "1mb" }));
