@@ -226,7 +226,7 @@ export const paymentDeviceService = {
     if (
       device.paymentProvider &&
       device.paymentProvider !== "OTHER" &&
-      !device.paymentProvider.split(",").includes(parsed.provider)
+      !device.paymentProvider.split(/[,|]/).includes(parsed.provider)
     ) {
       logger.warn(
         { deviceProvider: device.paymentProvider, parsedProvider: parsed.provider },
