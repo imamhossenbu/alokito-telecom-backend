@@ -66,25 +66,38 @@ export const paymentDeviceService = {
 
     const mongoSession = await mongoose.startSession();
     try {
-      let device;
+      let device: any;
       await mongoSession.withTransaction(async () => {
-        // Upsert device
+        // Find existing device to preserve its configuration fields
+        const existingDevice = await PaymentDeviceModel.findOne({ deviceId: data.deviceId }).session(mongoSession);
+
+        const updateSet: any = {
+          adminId: session.adminId,
+          deviceName: data.deviceName || (existingDevice ? existingDevice.deviceName : undefined),
+          appVersion: data.appVersion || (existingDevice ? existingDevice.appVersion : undefined),
+          status: PaymentDeviceStatus.CONNECTED,
+          lastSeenAt: new Date(),
+          pairedAt: new Date(),
+          revokedAt: undefined,
+        };
+
+        // Only override phone, slot, operator if provided, else retain existing values
+        if (data.phoneNumber !== undefined) updateSet.phoneNumber = data.phoneNumber;
+        else if (existingDevice && existingDevice.phoneNumber) updateSet.phoneNumber = existingDevice.phoneNumber;
+
+        if (data.simSlot !== undefined) updateSet.simSlot = data.simSlot;
+        else if (existingDevice && existingDevice.simSlot !== undefined) updateSet.simSlot = existingDevice.simSlot;
+
+        if (data.simOperator !== undefined) updateSet.simOperator = data.simOperator;
+        else if (existingDevice && existingDevice.simOperator) updateSet.simOperator = existingDevice.simOperator;
+
+        if (existingDevice && existingDevice.paymentProvider) {
+          updateSet.paymentProvider = existingDevice.paymentProvider;
+        }
+
         device = await PaymentDeviceModel.findOneAndUpdate(
           { deviceId: data.deviceId },
-          {
-            $set: {
-              adminId: session.adminId,
-              deviceName: data.deviceName,
-              phoneNumber: data.phoneNumber,
-              simSlot: data.simSlot,
-              simOperator: data.simOperator,
-              appVersion: data.appVersion,
-              status: PaymentDeviceStatus.CONNECTED,
-              lastSeenAt: new Date(),
-              pairedAt: new Date(),
-              revokedAt: undefined,
-            },
-          },
+          { $set: updateSet },
           { new: true, upsert: true, session: mongoSession }
         );
 
@@ -121,10 +134,56 @@ export const paymentDeviceService = {
         success: true,
         token,
         deviceId: (device as any)._id.toString(),
+        device: {
+          phoneNumber: device.phoneNumber || null,
+          simSlot: device.simSlot !== undefined ? device.simSlot : null,
+          simOperator: device.simOperator || null,
+          paymentProvider: device.paymentProvider || null,
+        }
       };
     } finally {
       await mongoSession.endSession();
     }
+  },
+
+  // ── Device: Setup ─────────────────────────────────────
+  async deviceSetup(
+    paymentDeviceId: string,
+    data: {
+      paymentProvider: string;
+      phoneNumber?: string;
+      simSlot?: number;
+      simOperator?: string;
+      appVersion?: string;
+      deviceName?: string;
+    }
+  ) {
+    const device = await PaymentDeviceModel.findById(paymentDeviceId);
+    if (!device || device.status === PaymentDeviceStatus.REVOKED) {
+      throw new NotFoundError("PAYMENT_DEVICE_NOT_FOUND", "Device not found or revoked");
+    }
+
+    if (data.paymentProvider) device.paymentProvider = data.paymentProvider;
+    if (data.phoneNumber) device.phoneNumber = data.phoneNumber;
+    if (data.simSlot !== undefined) device.simSlot = data.simSlot;
+    if (data.simOperator) device.simOperator = data.simOperator;
+    if (data.appVersion) device.appVersion = data.appVersion;
+    if (data.deviceName) device.deviceName = data.deviceName;
+
+    device.status = PaymentDeviceStatus.CONNECTED;
+    device.lastSeenAt = new Date();
+    await device.save();
+
+    await auditLogService.log({
+      actorType: ActorType.DEVICE,
+      actorId: paymentDeviceId,
+      action: "PAYMENT_DEVICE_SETUP",
+      entityType: "PaymentDevice",
+      entityId: device._id,
+      metadata: data,
+    });
+
+    return { success: true, device };
   },
 
   // ── Device: Heartbeat ─────────────────────────────────
@@ -164,7 +223,11 @@ export const paymentDeviceService = {
     }
 
     // Check mapping match (device provider must match the parsed SMS provider)
-    if (device.paymentProvider && device.paymentProvider !== parsed.provider) {
+    if (
+      device.paymentProvider &&
+      device.paymentProvider !== "OTHER" &&
+      !device.paymentProvider.split(",").includes(parsed.provider)
+    ) {
       logger.warn(
         { deviceProvider: device.paymentProvider, parsedProvider: parsed.provider },
         "SMS provider mismatch for device"

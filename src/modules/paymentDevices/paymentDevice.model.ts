@@ -42,7 +42,6 @@ const paymentDeviceSchema = new Schema<PaymentDeviceDocument>(
     simOperator: { type: String },
     paymentProvider: {
       type: String,
-      enum: Object.values(PaymentProvider),
     },
     status: {
       type: String,

@@ -71,6 +71,17 @@ export const paymentDeviceController = {
     sendSuccess(res, { data: result });
   },
 
+  async deviceSetup(req: Request, res: Response) {
+    if (!req.actor || req.actor.type !== "PAYMENT_DEVICE") {
+      throw new UnauthorizedError();
+    }
+    const result = await paymentDeviceService.deviceSetup(
+      req.actor.paymentDeviceId,
+      req.body
+    );
+    sendSuccess(res, { data: result });
+  },
+
   async deviceHeartbeat(req: Request, res: Response) {
     if (!req.actor || req.actor.type !== "PAYMENT_DEVICE") {
       throw new UnauthorizedError();

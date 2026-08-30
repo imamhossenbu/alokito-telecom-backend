@@ -9,6 +9,7 @@ const router = Router();
 router.post("/pair", asyncHandler(paymentDeviceController.devicePair));
 
 // Endpoints requiring payment device credentials
+router.post("/setup", paymentDeviceMiddleware, asyncHandler(paymentDeviceController.deviceSetup));
 router.post("/heartbeat", paymentDeviceMiddleware, asyncHandler(paymentDeviceController.deviceHeartbeat));
 router.post("/sms-events", paymentDeviceMiddleware, asyncHandler(paymentDeviceController.deviceIngestSms));
 
