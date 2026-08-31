@@ -9,8 +9,9 @@ export const userRepository = {
     return withPinHash ? query.select("+pinHash") : query;
   },
 
-  findByPhone(phone: string) {
-    return UserModel.findOne({ phone });
+  findByPhone(phone: string, withPinHash = false) {
+    const query = UserModel.findOne({ phone });
+    return withPinHash ? query.select("+pinHash") : query;
   },
 
   findById(id: string | Types.ObjectId, withPinHash = false) {

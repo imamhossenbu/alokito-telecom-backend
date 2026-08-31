@@ -1,8 +1,10 @@
 import mongoose, { Types } from "mongoose";
+import argon2 from "argon2";
 import { authRepository } from "./auth.repository";
 import { userRepository } from "../users/user.repository";
 import { walletRepository } from "../wallets/wallet.repository";
 import { identityRepository } from "../identities/identity.repository";
+import { adminRepository } from "../admins/admin.repository";
 import { nidExtractor } from "../../integrations/nid/nid-extractor";
 import { VerificationPurpose } from "./verificationSession.model";
 import { CreatedByType } from "../users/user.model";
@@ -345,19 +347,65 @@ export const authService = {
     body: LoginBody,
     context: { ipAddress?: string; userAgent?: string },
   ) {
-    const emailNormalized = normalizeEmail(body.email);
-    const user = await userRepository.findByEmailNormalized(
-      emailNormalized,
-      true,
-    );
+    const inputIdentifier = body.email.trim();
+    const isEmail = inputIdentifier.includes("@");
+
+    // ── 1. Try Admin Login first ──
+    if (isEmail) {
+      try {
+        const emailNormalized = normalizeEmail(inputIdentifier);
+        const admin = await adminRepository.findByEmailNormalized(emailNormalized, true);
+        if (admin && admin.status !== "BLOCKED") {
+          const passwordValid = await argon2.verify(admin.passwordHash, body.pin);
+          if (passwordValid) {
+            await adminRepository.updateLastLogin(admin._id.toString());
+            const accessToken = signAccessToken({
+              sub: admin._id.toString(),
+              type: "ADMIN",
+            });
+            return {
+              role: "admin",
+              accessToken,
+              admin: { id: admin._id.toString(), name: admin.name, email: admin.email },
+            };
+          }
+        }
+      } catch (err) {
+        // Fallback to customer search
+      }
+    }
+
+    // ── 2. Try Customer Login ──
+    let user = null;
+
+    // Try finding by phone if input looks like one, or by email
+    const looksLikePhone = /^\+?8801[3-9]\d{8}$|^01[3-9]\d{8}$/.test(inputIdentifier);
+    if (looksLikePhone) {
+      try {
+        const phoneNormalized = normalizeBdPhone(inputIdentifier);
+        user = await userRepository.findByPhone(phoneNormalized, true);
+      } catch (err) {
+        // Ignore
+      }
+    }
+
+    if (!user) {
+      try {
+        const emailNormalized = normalizeEmail(inputIdentifier);
+        user = await userRepository.findByEmailNormalized(emailNormalized, true);
+      } catch (err) {
+        // Ignore
+      }
+    }
 
     if (!user) {
       throw new AppError(
         "AUTH_INVALID_CREDENTIALS",
-        "Invalid email or PIN",
+        "Invalid email/phone or PIN",
         401,
       );
     }
+
     if (
       user.accountStatus === AccountStatus.BLOCKED ||
       user.accountStatus === AccountStatus.SUSPENDED
@@ -369,7 +417,7 @@ export const authService = {
     if (user.accountStatus === AccountStatus.DELETED) {
       throw new AppError(
         "AUTH_INVALID_CREDENTIALS",
-        "Invalid email or PIN",
+        "Invalid email/phone or PIN",
         401,
       );
     }
@@ -378,21 +426,17 @@ export const authService = {
     if (!pinValid) {
       throw new AppError(
         "AUTH_INVALID_CREDENTIALS",
-        "Invalid email or PIN",
+        "Invalid email/phone or PIN",
         401,
       );
     }
 
     if (user.mustChangePin) {
-      // Client must call /auth/reset-pin (or a dedicated first-login-change
-      // endpoint) before a full session is issued. We still confirm identity
-      // via a short-lived purpose token so the client isn't asked to
-      // re-enter the temporary PIN a second time.
       const changeToken = signPurposeToken(
         { sub: user._id.toString(), purpose: "MUST_CHANGE_PIN" },
         "10m",
       );
-      return { mustChangePin: true, changeToken };
+      return { role: "user", mustChangePin: true, changeToken };
     }
 
     const trustedDevice = await authRepository.findTrustedDevice(
@@ -416,7 +460,7 @@ export const authService = {
         ...context,
       });
 
-      return { requiresVerification: false, ...tokens };
+      return { role: "user", requiresVerification: false, ...tokens };
     }
 
     // Unknown device — require email verification before issuing tokens.
@@ -427,6 +471,7 @@ export const authService = {
     });
 
     return {
+      role: "user",
       requiresVerification: true,
       verificationId: verificationSessionId.toString(),
     };

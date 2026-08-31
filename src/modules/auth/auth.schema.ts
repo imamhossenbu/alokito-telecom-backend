@@ -52,8 +52,8 @@ export type RegisterResendBody = z.infer<typeof registerResendBodySchema>;
 
 // ── POST /auth/login ──────────────────────────────────────
 export const loginBodySchema = z.object({
-  email: emailSchema,
-  pin: pinSchema,
+  email: z.string().min(1, "Email or phone is required"),
+  pin: z.string().min(4, "PIN or password must be at least 4 characters"),
   ...deviceInfoSchema.shape,
 });
 export type LoginBody = z.infer<typeof loginBodySchema>;
