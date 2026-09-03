@@ -197,7 +197,16 @@ export const paymentDeviceService = {
     device.status = PaymentDeviceStatus.CONNECTED;
     await device.save();
 
-    return { success: true };
+    // Listener app expects the device document in 'data.device' to keep local state synced
+    // Make sure to map _id to id so Flutter can parse it
+    return { 
+      success: true, 
+      device: {
+        ...device.toObject(),
+        id: device._id.toString(),
+        adminId: device.adminId.toString(),
+      } 
+    };
   },
 
   // ── Device: SMS Ingestion ──────────────────────────────
