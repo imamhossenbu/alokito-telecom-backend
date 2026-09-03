@@ -37,7 +37,20 @@ export function createApp(): Application {
   // --- CORS (spec section 120): explicit whitelist, never '*' ---
   app.use(
     cors({
-      origin: env.corsOrigins,
+      origin: (origin, callback) => {
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
+        
+        if (env.isDevelopment) {
+          return callback(null, true); // Allow all origins in development
+        }
+
+        if (env.corsOrigins.includes(origin)) {
+          return callback(null, true);
+        }
+        
+        callback(new Error('Not allowed by CORS'));
+      },
       credentials: true,
     }),
   );
