@@ -47,15 +47,22 @@ export const ORDER_STATE_TRANSITIONS: Record<
 > = {
   ACTIVATION_PENDING: [
     OrderStatus.PROCESSING,
+    OrderStatus.COMPLETED,
     OrderStatus.FAILED,
     OrderStatus.CANCELLED,
+    OrderStatus.REFUNDED,
   ],
-  PROCESSING: [OrderStatus.COMPLETED, OrderStatus.FAILED],
-  COMPLETED: [],
-  FAILED: [OrderStatus.REFUND_PENDING],
+  PROCESSING: [
+    OrderStatus.COMPLETED,
+    OrderStatus.FAILED,
+    OrderStatus.CANCELLED,
+    OrderStatus.REFUNDED,
+  ],
+  COMPLETED: [OrderStatus.REFUNDED],
+  FAILED: [OrderStatus.REFUND_PENDING, OrderStatus.REFUNDED, OrderStatus.ACTIVATION_PENDING],
   REFUND_PENDING: [OrderStatus.REFUNDED],
   REFUNDED: [],
-  CANCELLED: [],
+  CANCELLED: [OrderStatus.REFUNDED],
 };
 
 export const WalletTransactionType = {

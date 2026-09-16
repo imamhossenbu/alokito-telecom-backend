@@ -10,10 +10,18 @@ function fileFilter(
   file: Express.Multer.File,
   cb: multer.FileFilterCallback,
 ): void {
-  if (!ALLOWED_MIME_TYPES.has(file.mimetype)) {
+  let mime = file.mimetype;
+  const ext = (file.originalname || "").toLowerCase().split(".").pop() || "";
+  if (!ALLOWED_MIME_TYPES.has(mime)) {
+    if (ext === "png") mime = "image/png";
+    else if (ext === "jpg" || ext === "jpeg") mime = "image/jpeg";
+    else if (ext === "webp") mime = "image/webp";
+  }
+  if (!ALLOWED_MIME_TYPES.has(mime)) {
     cb(new ValidationError("Only JPEG, PNG or WEBP images are allowed"));
     return;
   }
+  file.mimetype = mime;
   cb(null, true);
 }
 

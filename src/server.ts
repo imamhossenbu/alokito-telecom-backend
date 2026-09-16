@@ -6,9 +6,13 @@ import { verifyEmailTransport } from "./integrations/email/mailer.config";
 import { emailWorker } from "./jobs/email.worker";
 import { redisClient } from "./config/redis";
 import { initSocketServer } from "./config/socket";
+import { adminAuthService } from "./modules/admins/admin.service";
+import { seedInitialData } from "./shared/utils/seedData";
 
 async function bootstrap(): Promise<void> {
   await connectDatabase();
+  await adminAuthService.seedDefaultAdmin();
+  await seedInitialData();
   void verifyEmailTransport(); // non-blocking; logs a warning on failure instead of stopping boot
 
   // Side-effect to ensure worker starts if Redis is configured

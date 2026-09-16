@@ -31,6 +31,7 @@ export interface OrderDocument extends Document {
   activationProcessedBy?: Types.ObjectId;
   activationProcessedAt?: Date;
   failureReason?: string;
+  refundReason?: string;
   completedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -67,6 +68,7 @@ const orderSchema = new Schema<OrderDocument>(
     activationProcessedBy: { type: Schema.Types.ObjectId, ref: "Admin" },
     activationProcessedAt: { type: Date },
     failureReason: { type: String },
+    refundReason: { type: String },
     completedAt: { type: Date },
   },
   { timestamps: true }

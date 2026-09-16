@@ -7,6 +7,7 @@ import {
   loginRateLimiter,
   registrationRateLimiter,
 } from "../../middleware/rateLimit.middleware";
+import { imageUpload } from "../../middleware/upload.middleware";
 import { asyncHandler } from "../../shared/utils/async-handler";
 import { adminLoginBodySchema } from "../auth/auth.schema";
 import {
@@ -285,6 +286,64 @@ router.post(
   adminMiddleware,
   validate({ body: createRefundBodySchema }),
   asyncHandler(refundController.adminRefundOrder),
+);
+
+// ── Wallet & Transactions management ──────────────────
+router.get(
+  "/wallet/summary",
+  adminMiddleware,
+  asyncHandler(adminController.getWalletSummary),
+);
+
+router.get(
+  "/wallet/transactions",
+  adminMiddleware,
+  asyncHandler(adminController.getWalletTransactions),
+);
+
+// ── Admin Profile & Settings ──────────────────────────
+router.get(
+  "/profile",
+  adminMiddleware,
+  asyncHandler(adminController.getProfile),
+);
+
+router.patch(
+  "/profile",
+  adminMiddleware,
+  asyncHandler(adminController.updateProfile),
+);
+
+router.post(
+  "/profile/photo",
+  adminMiddleware,
+  imageUpload.any(),
+  asyncHandler(adminController.uploadProfilePhoto),
+);
+
+router.post(
+  "/profile/change-password",
+  adminMiddleware,
+  asyncHandler(adminController.changePassword),
+);
+
+// ── Admin Dynamic Notifications ───────────────────────
+router.get(
+  "/notifications",
+  adminMiddleware,
+  asyncHandler(adminController.getNotifications),
+);
+
+router.post(
+  "/notifications/:id/read",
+  adminMiddleware,
+  asyncHandler(adminController.markNotificationRead),
+);
+
+router.post(
+  "/notifications/read-all",
+  adminMiddleware,
+  asyncHandler(adminController.markAllNotificationsRead),
 );
 
 export default router;

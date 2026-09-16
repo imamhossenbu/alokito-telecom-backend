@@ -28,19 +28,11 @@ export const refundService = {
       throw new ConflictError("REFUND_ALREADY_EXISTS", "A refund is already pending or processed for this order");
     }
 
-    // Check eligibility: Order must be failed (or processing if cancelled/failed)
-    if (order.orderStatus !== OrderStatus.FAILED && order.orderStatus !== OrderStatus.REFUND_PENDING) {
+    // Check eligibility: Order must not already be refunded
+    if (order.orderStatus === OrderStatus.REFUNDED) {
       throw new AppError(
         "REFUND_NOT_ALLOWED",
-        `Only failed orders can be refunded. Current status is ${order.orderStatus}`,
-        400
-      );
-    }
-
-    if (order.paymentMethod !== "WALLET") {
-      throw new AppError(
-        "REFUND_NOT_ALLOWED",
-        "Only wallet-paid orders can be refunded to user wallet",
+        `Order is already refunded`,
         400
       );
     }
@@ -101,6 +93,7 @@ export const refundService = {
 
         // Mark order as REFUNDED
         order.orderStatus = OrderStatus.REFUNDED;
+        order.refundReason = reason;
         await order.save({ session: mongoSession });
       });
 

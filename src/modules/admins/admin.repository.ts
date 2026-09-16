@@ -6,6 +6,10 @@ export const adminRepository = {
     return withPasswordHash ? query.select("+passwordHash") : query;
   },
 
+  async create(data: Partial<Parameters<typeof AdminModel.create>[0]>) {
+    return AdminModel.create(data);
+  },
+
   async updateLastLogin(adminId: string) {
     await AdminModel.updateOne(
       { _id: adminId },

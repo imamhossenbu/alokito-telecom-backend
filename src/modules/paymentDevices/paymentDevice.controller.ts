@@ -10,7 +10,7 @@ export const paymentDeviceController = {
       throw new UnauthorizedError();
     }
     const result = await paymentDeviceService.adminCreatePairing(req.actor.adminId);
-    sendCreated(res, { data: result });
+    sendCreated(res, result);
   },
 
   async adminGetDevices(req: Request, res: Response) {
