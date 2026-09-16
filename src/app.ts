@@ -1,4 +1,6 @@
 import express, { Application } from "express";
+import path from "path";
+import fs from "fs";
 import helmet from "helmet";
 import cors from "cors";
 import cookieParser from "cookie-parser";
@@ -58,6 +60,282 @@ export function createApp(): Application {
   app.use(compression());
   app.use(cookieParser());
   app.use("/public", express.static("public"));
+
+  // --- APK Download Endpoints (Immediate auto-download on click) ---
+  app.get("/download/:file", (req, res) => {
+    const raw = (req.params.file || "").toLowerCase();
+    let target = req.params.file;
+    if (raw === "admin" || raw === "admin.apk" || raw === "drive-offer-admin" || raw === "drive-offer-admin.apk") {
+      target = "drive-offer-admin.apk";
+    } else if (raw === "admin-v7a" || raw === "admin-v7a.apk" || raw === "drive-offer-admin-v7a.apk") {
+      target = "drive-offer-admin-v7a.apk";
+    } else if (raw === "listener" || raw === "listener.apk" || raw === "driver-sms-listener" || raw === "driver-sms-listener.apk") {
+      target = "driver-sms-listener.apk";
+    } else if (raw === "listener-v7a" || raw === "listener-v7a.apk" || raw === "driver-sms-listener-v7a.apk") {
+      target = "driver-sms-listener-v7a.apk";
+    }
+
+    const filePath = path.join(process.cwd(), "public", "downloads", target);
+    if (fs.existsSync(filePath)) {
+      return res.download(filePath, target);
+    }
+    return res.status(404).send(`APK file not found: ${target}`);
+  });
+
+  // --- Mobile Apps Download Portal Page ---
+  app.get("/downloads", (_req, res) => {
+    const html = `<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Alokito Telecom - App Downloads</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Hind+Siliguri:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #0D5E36;
+      --primary-light: #15803D;
+      --bg: #0B131E;
+      --card-bg: rgba(255, 255, 255, 0.05);
+      --border: rgba(255, 255, 255, 0.1);
+      --text: #F8FAFC;
+      --text-muted: #94A3B8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Plus Jakarta Sans', 'Hind Siliguri', sans-serif;
+      background: radial-gradient(circle at top, #13271E 0%, #080D14 100%);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px;
+    }
+    .container {
+      max-width: 680px;
+      width: 100%;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 36px;
+    }
+    .logo-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(13, 94, 54, 0.3);
+      border: 1px solid rgba(22, 163, 74, 0.4);
+      padding: 8px 16px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #4ADE80;
+      margin-bottom: 16px;
+    }
+    h1 {
+      font-size: 32px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      margin-bottom: 8px;
+    }
+    p.sub {
+      color: var(--text-muted);
+      font-size: 15px;
+    }
+    .apps-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .app-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 24px;
+      backdrop-filter: blur(16px);
+      transition: all 0.2s ease;
+    }
+    .app-card:hover {
+      border-color: rgba(34, 197, 94, 0.4);
+      transform: translateY(-2px);
+    }
+    .card-top {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    .app-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+      font-weight: 800;
+      color: white;
+      flex-shrink: 0;
+    }
+    .icon-admin {
+      background: linear-gradient(135deg, #0D5E36, #16A34A);
+      box-shadow: 0 8px 20px rgba(13, 94, 54, 0.4);
+    }
+    .icon-listener {
+      background: linear-gradient(135deg, #0284C7, #2563EB);
+      box-shadow: 0 8px 20px rgba(2, 132, 199, 0.4);
+    }
+    .app-info h2 {
+      font-size: 19px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .badges {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .badge {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.08);
+      color: #CBD5E1;
+    }
+    .badge.green {
+      background: rgba(34, 197, 94, 0.15);
+      color: #4ADE80;
+    }
+    .description {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.5;
+      margin-bottom: 20px;
+    }
+    .btn-group {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .btn-download {
+      flex: 1;
+      min-width: 200px;
+      background: linear-gradient(135deg, #15803D, #16A34A);
+      color: white;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 14px;
+      padding: 13px 20px;
+      border-radius: 12px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 4px 14px rgba(22, 163, 74, 0.3);
+      transition: all 0.2s ease;
+    }
+    .btn-download:hover {
+      background: linear-gradient(135deg, #166534, #15803D);
+      transform: translateY(-1px);
+    }
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #E2E8F0;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 13px 16px;
+      border-radius: 12px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+    }
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.12);
+    }
+    .footer {
+      text-align: center;
+      margin-top: 40px;
+      font-size: 12px;
+      color: #64748B;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="logo-badge">⚡ Alokito Telecom Production Apps</div>
+      <h1>অফিসিয়াল মোবাইল অ্যাপস ডাউনলোড</h1>
+      <p class="sub">সরাসরি লিংকে ক্লিক করলেই আপনার ফোনে APK ডাউনলোড শুরু হয়ে যাবে</p>
+    </div>
+
+    <div class="apps-grid">
+      <!-- Drive Offer Admin App Card -->
+      <div class="app-card">
+        <div class="card-top">
+          <div class="app-icon icon-admin">DO</div>
+          <div class="app-info">
+            <h2>Drive Offer Admin App</h2>
+            <div class="badges">
+              <span class="badge green">Production Ready</span>
+              <span class="badge">v1.0.0</span>
+              <span class="badge">Size: ~15MB - 18MB</span>
+            </div>
+          </div>
+        </div>
+        <div class="description">
+          ড্রাইভ ও রেগুলার অফার ম্যানেজমেন্ট, রিয়েলটাইম অর্ডার ট্র্যাকিং, ব্যালেন্স, ইউজার কন্ট্রোল, বাইলিঙ্গুয়াল ভাষা (বাংলা/English) ও নোটিফিকেশন অ্যালার্ট।
+        </div>
+        <div class="btn-group">
+          <a href="/download/admin" class="btn-download" download>
+            ⬇️ Download Admin APK (Main 64-bit)
+          </a>
+          <a href="/download/admin-v7a" class="btn-secondary" download title="Ultra compact 15MB build">
+            15MB Build (32-bit)
+          </a>
+        </div>
+      </div>
+
+      <!-- Driver SMS Listener App Card -->
+      <div class="app-card">
+        <div class="card-top">
+          <div class="app-icon icon-listener">SMS</div>
+          <div class="app-info">
+            <h2>Driver SMS Listener App</h2>
+            <div class="badges">
+              <span class="badge green">Production Ready</span>
+              <span class="badge">v1.0.0</span>
+              <span class="badge">Size: ~19MB - 23MB</span>
+            </div>
+          </div>
+        </div>
+        <div class="description">
+          বিকাশ, নগদ ও রকেটের ইনকামিং SMS স্বয়ংক্রিয়ভাবে সার্ভারে সিঙ্ক ও পেমেন্ট ভেরিফাই করার ব্যাকগ্রাউন্ড লিসেনার অ্যাপ।
+        </div>
+        <div class="btn-group">
+          <a href="/download/listener" class="btn-download" download>
+            ⬇️ Download Listener APK (Main 64-bit)
+          </a>
+          <a href="/download/listener-v7a" class="btn-secondary" download title="Compact 19MB build">
+            19MB Build (32-bit)
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">
+      Alokito Telecom Core Engine &copy; 2026. All rights reserved.
+    </div>
+  </div>
+</body>
+</html>`;
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    res.send(html);
+  });
 
   // --- Request body limits: support base64 profile images and large payloads ---
   app.use(express.json({ limit: "20mb" }));
