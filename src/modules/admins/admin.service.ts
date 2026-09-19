@@ -196,7 +196,29 @@ export const adminWalletService = {
 
     const filter: any = {};
     if (query.type && query.type !== "ALL") {
-      filter.type = query.type.toUpperCase();
+      const typeUpper = query.type.toUpperCase();
+      if (typeUpper === "ADMIN_ADJUSTMENT" || typeUpper === "ADJUSTMENT") {
+        filter.type = { $in: ["ADJUSTMENT", "ADMIN_ADJUSTMENT"] };
+      } else {
+        filter.type = typeUpper;
+      }
+    }
+
+    if (query.search && query.search.trim().length > 0) {
+      const s = query.search.trim();
+      const searchRegex = new RegExp(s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
+
+      // Find matching users
+      const matchingUsers = await UserModel.find({
+        $or: [{ name: searchRegex }, { phone: searchRegex }, { email: searchRegex }],
+      }).select("_id").lean();
+      const userIds = matchingUsers.map((u) => u._id);
+
+      filter.$or = [
+        { transactionId: searchRegex },
+        { description: searchRegex },
+        ...(userIds.length > 0 ? [{ userId: { $in: userIds } }] : []),
+      ];
     }
 
     const [transactions, total] = await Promise.all([
