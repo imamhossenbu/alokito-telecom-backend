@@ -12,13 +12,13 @@ import { logger } from "../../config/logger";
 
 export async function seedInitialData(): Promise<void> {
   try {
-    // ── 1. Seed Operators ─────────────────────────────────
+    // ── 1. Seed Operators with real prefixes & USSD codes ──
     const operatorsData = [
-      { name: "Grameenphone", code: "GP", sortOrder: 1, status: "ACTIVE" },
-      { name: "Robi", code: "ROBI", sortOrder: 2, status: "ACTIVE" },
-      { name: "Airtel", code: "AIRTEL", sortOrder: 3, status: "ACTIVE" },
-      { name: "Banglalink", code: "BANGLALINK", sortOrder: 4, status: "ACTIVE" },
-      { name: "Teletalk", code: "TELETALK", sortOrder: 5, status: "ACTIVE" },
+      { name: "Grameenphone", code: "GP", prefixes: ["017", "013"], ussdBalance: "*566#", ussdOffer: "*121#", sortOrder: 1, status: "ACTIVE" },
+      { name: "Robi", code: "ROBI", prefixes: ["018"], ussdBalance: "*222#", ussdOffer: "*999#", sortOrder: 2, status: "ACTIVE" },
+      { name: "Airtel", code: "AIRTEL", prefixes: ["016"], ussdBalance: "*778#", ussdOffer: "*121#", sortOrder: 3, status: "ACTIVE" },
+      { name: "Banglalink", code: "BANGLALINK", prefixes: ["019", "014"], ussdBalance: "*124#", ussdOffer: "*888#", sortOrder: 4, status: "ACTIVE" },
+      { name: "Teletalk", code: "TELETALK", prefixes: ["015"], ussdBalance: "*152#", ussdOffer: "*111#", sortOrder: 5, status: "ACTIVE" },
     ];
 
     const operatorMap: Record<string, any> = {};

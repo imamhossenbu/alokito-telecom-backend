@@ -31,7 +31,7 @@ export const operatorService = {
   },
 
   async adminCreateOperator(
-    data: { name: string; code: string; logoUrl?: string; sortOrder?: number },
+    data: { name: string; code: string; logoUrl?: string; sortOrder?: number; prefixes?: string[]; ussdBalance?: string; ussdOffer?: string },
     actor: { id: string; ipAddress?: string; userAgent?: string }
   ) {
     const existing = await operatorRepository.findByCode(data.code);
@@ -43,6 +43,9 @@ export const operatorService = {
       name: data.name,
       code: data.code.toUpperCase(),
       logoUrl: data.logoUrl,
+      prefixes: data.prefixes ?? [],
+      ussdBalance: data.ussdBalance,
+      ussdOffer: data.ussdOffer,
       sortOrder: data.sortOrder ?? 0,
       status: OperatorStatus.ACTIVE,
     });
@@ -63,7 +66,7 @@ export const operatorService = {
 
   async adminUpdateOperator(
     id: string,
-    data: { name?: string; code?: string; logoUrl?: string; sortOrder?: number },
+    data: { name?: string; code?: string; logoUrl?: string; sortOrder?: number; prefixes?: string[]; ussdBalance?: string; ussdOffer?: string },
     actor: { id: string; ipAddress?: string; userAgent?: string }
   ) {
     const operator = await operatorRepository.findById(id);
@@ -122,5 +125,27 @@ export const operatorService = {
     });
 
     return operator;
+  },
+
+  async adminDeleteOperator(id: string, actor: { id: string; ipAddress?: string; userAgent?: string }) {
+    const operator = await operatorRepository.findById(id);
+    if (!operator) {
+      throw new NotFoundError("OFFER_NOT_FOUND", "Operator not found");
+    }
+
+    await operatorRepository.delete(operator._id);
+
+    await auditLogService.log({
+      actorType: ActorType.ADMIN,
+      actorId: actor.id,
+      action: "ADMIN_OPERATOR_DELETED",
+      entityType: "Operator",
+      entityId: operator._id,
+      metadata: { name: operator.name, code: operator.code },
+      ipAddress: actor.ipAddress,
+      userAgent: actor.userAgent,
+    });
+
+    return { success: true };
   },
 };

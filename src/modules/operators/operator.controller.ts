@@ -71,4 +71,10 @@ export const operatorController = {
     const operator = await operatorService.adminSetStatus(req.params.id, OperatorStatus.INACTIVE, actor);
     sendSuccess(res, { data: operator });
   },
+
+  async adminDeleteOperator(req: Request, res: Response) {
+    const actor = getActorContext(req);
+    await operatorService.adminDeleteOperator(req.params.id, actor);
+    sendSuccess(res, { data: { message: "Operator deleted successfully" } });
+  },
 };

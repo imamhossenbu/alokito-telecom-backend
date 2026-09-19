@@ -11,6 +11,9 @@ export interface OperatorDocument extends Document {
   name: string;
   code: string;
   logoUrl?: string;
+  prefixes: string[];
+  ussdBalance?: string;
+  ussdOffer?: string;
   status: OperatorStatusType;
   sortOrder: number;
   createdAt: Date;
@@ -22,6 +25,9 @@ const operatorSchema = new Schema<OperatorDocument>(
     name: { type: String, required: true, trim: true },
     code: { type: String, required: true, unique: true, uppercase: true, trim: true },
     logoUrl: { type: String },
+    prefixes: { type: [String], default: [] },
+    ussdBalance: { type: String },
+    ussdOffer: { type: String },
     status: {
       type: String,
       enum: Object.values(OperatorStatus),

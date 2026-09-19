@@ -121,6 +121,11 @@ router.post(
   adminMiddleware,
   asyncHandler(operatorController.adminDeactivateOperator),
 );
+router.delete(
+  "/operators/:id",
+  adminMiddleware,
+  asyncHandler(operatorController.adminDeleteOperator),
+);
 
 // ── Offer management ──────────────────────────────────
 router.get(
