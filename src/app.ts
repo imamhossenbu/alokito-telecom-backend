@@ -93,7 +93,8 @@ export function createApp(): Application {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Alokito Telecom - App Downloads</title>
+  <title>Alokito Telecom - Official Apps Download</title>
+  <link rel="icon" type="image/png" href="/public/favicon.png">
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Hind+Siliguri:wght@500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
@@ -124,18 +125,28 @@ export function createApp(): Application {
       text-align: center;
       margin-bottom: 36px;
     }
+    .logo-img {
+      width: 80px;
+      height: 80px;
+      border-radius: 20px;
+      background: #ffffff;
+      padding: 4px;
+      box-shadow: 0 10px 30px rgba(13, 94, 54, 0.4);
+      margin-bottom: 16px;
+      object-fit: contain;
+    }
     .logo-badge {
       display: inline-flex;
       align-items: center;
       gap: 10px;
       background: rgba(13, 94, 54, 0.3);
       border: 1px solid rgba(22, 163, 74, 0.4);
-      padding: 8px 16px;
+      padding: 6px 14px;
       border-radius: 999px;
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 700;
       color: #4ADE80;
-      margin-bottom: 16px;
+      margin-bottom: 12px;
     }
     h1 {
       font-size: 32px;
@@ -177,18 +188,16 @@ export function createApp(): Application {
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 26px;
-      font-weight: 800;
-      color: white;
+      overflow: hidden;
       flex-shrink: 0;
+      background: white;
+      padding: 4px;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
     }
-    .icon-admin {
-      background: linear-gradient(135deg, #0D5E36, #16A34A);
-      box-shadow: 0 8px 20px rgba(13, 94, 54, 0.4);
-    }
-    .icon-listener {
-      background: linear-gradient(135deg, #0284C7, #2563EB);
-      box-shadow: 0 8px 20px rgba(2, 132, 199, 0.4);
+    .app-icon img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
     }
     .app-info h2 {
       font-size: 19px;
@@ -261,6 +270,23 @@ export function createApp(): Application {
     .btn-secondary:hover {
       background: rgba(255, 255, 255, 0.12);
     }
+    .btn-web {
+      background: rgba(22, 163, 74, 0.15);
+      border: 1px solid rgba(74, 222, 128, 0.4);
+      color: #4ADE80;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 13px 16px;
+      border-radius: 12px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+    }
+    .btn-web:hover {
+      background: rgba(22, 163, 74, 0.25);
+    }
     .footer {
       text-align: center;
       margin-top: 40px;
@@ -272,67 +298,77 @@ export function createApp(): Application {
 <body>
   <div class="container">
     <div class="header">
-      <div class="logo-badge">⚡ Alokito Telecom Production Apps</div>
-      <h1>অফিসিয়াল মোবাইল অ্যাপস ডাউনলোড</h1>
+      <img src="/public/logo.png" class="logo-img" alt="Alokito Telecom Logo" />
+      <div>
+        <div class="logo-badge">⚡ Alokito Telecom Production Suite</div>
+      </div>
+      <h1>অফিসিয়াল অ্যাপস ডাউনলোড</h1>
       <p class="sub">সরাসরি লিংকে ক্লিক করলেই আপনার ফোনে APK ডাউনলোড শুরু হয়ে যাবে</p>
     </div>
 
     <div class="apps-grid">
-      <!-- Drive Offer Admin App Card -->
+      <!-- Alokito Telecom Admin App Card -->
       <div class="app-card">
         <div class="card-top">
-          <div class="app-icon icon-admin">DO</div>
+          <div class="app-icon">
+            <img src="/public/logo.png" alt="Admin App" />
+          </div>
           <div class="app-info">
-            <h2>Drive Offer Admin App</h2>
+            <h2>Alokito Telecom - Admin App</h2>
             <div class="badges">
               <span class="badge green">Production Ready</span>
               <span class="badge">v1.0.0</span>
-              <span class="badge">Size: ~15MB - 18MB</span>
+              <span class="badge">Android & Web</span>
             </div>
           </div>
         </div>
         <div class="description">
-          ড্রাইভ ও রেগুলার অফার ম্যানেজমেন্ট, রিয়েলটাইম অর্ডার ট্র্যাকিং, ব্যালেন্স, ইউজার কন্ট্রোল, বাইলিঙ্গুয়াল ভাষা (বাংলা/English) ও নোটিফিকেশন অ্যালার্ট।
+          ড্রাইভ ও রেগুলার অফার ম্যানেজমেন্ট, ক্যাটাগরি তৈরি ও ডিলিট, রিয়েলটাইম অর্ডার প্রসেসিং, ইউজার কন্ট্রোল, নোটিফিকেশন অ্যালার্ট ও ব্রাউজার সাপোর্ট।
         </div>
         <div class="btn-group">
           <a href="/download/admin" class="btn-download" download>
-            ⬇️ Download Admin APK (Main 64-bit)
+            ⬇️ Download Admin APK (Main)
           </a>
-          <a href="/download/admin-v7a" class="btn-secondary" download title="Ultra compact 15MB build">
-            15MB Build (32-bit)
+          <a href="/admin" class="btn-web" target="_blank">
+            🌐 Open Web Admin
+          </a>
+          <a href="/download/admin-v7a" class="btn-secondary" download title="Compact build">
+            v7a Build
           </a>
         </div>
       </div>
 
-      <!-- Driver SMS Listener App Card -->
+      <!-- Alokito Telecom SMS Listener App Card -->
       <div class="app-card">
         <div class="card-top">
-          <div class="app-icon icon-listener">SMS</div>
+          <div class="app-icon">
+            <img src="/public/logo.png" alt="SMS Listener" />
+          </div>
           <div class="app-info">
-            <h2>Driver SMS Listener App</h2>
+            <h2>Alokito Telecom - SMS Listener</h2>
             <div class="badges">
               <span class="badge green">Production Ready</span>
               <span class="badge">v1.0.0</span>
-              <span class="badge">Size: ~19MB - 23MB</span>
+              <span class="badge">Background Service</span>
             </div>
           </div>
         </div>
         <div class="description">
-          বিকাশ, নগদ ও রকেটের ইনকামিং SMS স্বয়ংক্রিয়ভাবে সার্ভারে সিঙ্ক ও পেমেন্ট ভেরিফাই করার ব্যাকগ্রাউন্ড লিসেনার অ্যাপ।
+          বিকাশ, নগদ ও রকেটের ইনকামিং SMS স্বয়ংক্রিয়ভাবে সার্ভারে সিঙ্ক ও পেমেন্ট ভেরিফাই করার ডেডিকেটেড ব্যাকগ্রাউন্ড সার্ভিস অ্যাপ।
         </div>
         <div class="btn-group">
           <a href="/download/listener" class="btn-download" download>
-            ⬇️ Download Listener APK (Main 64-bit)
+            ⬇️ Download SMS Listener APK (Main)
           </a>
-          <a href="/download/listener-v7a" class="btn-secondary" download title="Compact 19MB build">
-            19MB Build (32-bit)
+          <a href="/download/listener-v7a" class="btn-secondary" download title="Compact build">
+            v7a Build
           </a>
         </div>
       </div>
     </div>
 
     <div class="footer">
-      Alokito Telecom Core Engine &copy; 2026. All rights reserved.
+      Alokito Telecom &copy; 2026. All rights reserved.
     </div>
   </div>
 </body>
