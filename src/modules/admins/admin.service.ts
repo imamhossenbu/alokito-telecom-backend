@@ -174,8 +174,14 @@ export const adminWalletService = {
     const totalAdded = topUpAgg.length > 0 ? poishaToBdt(topUpAgg[0].total) : 0;
     const totalSpent = purchaseAgg.length > 0 ? poishaToBdt(purchaseAgg[0].total) : 0;
     const totalRefund = refundAgg.length > 0 ? poishaToBdt(refundAgg[0].total) : 0;
+    const netSales = Math.max(0, totalSpent - totalRefund);
 
     return {
+      totalSales: totalSpent,
+      totalDeposits: totalAdded,
+      customerWalletBalance: currentBalance,
+      totalRefunds: totalRefund,
+      netSales,
       currentBalance,
       holdBalance: 0,
       totalAdded,
