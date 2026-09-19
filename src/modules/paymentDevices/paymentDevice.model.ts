@@ -5,6 +5,7 @@ export const PaymentDeviceStatus = {
   PENDING: "PENDING",
   CONNECTED: "CONNECTED",
   OFFLINE: "OFFLINE",
+  DISCONNECTED: "DISCONNECTED",
   REVOKED: "REVOKED",
 } as const;
 export type PaymentDeviceStatusType =
@@ -21,6 +22,10 @@ export interface PaymentDeviceDocument extends Document {
   simSlot?: number;
   simOperator?: string;
   paymentProvider?: string;
+  sim1PhoneNumber?: string;
+  sim1Providers?: string;
+  sim2PhoneNumber?: string;
+  sim2Providers?: string;
   status: PaymentDeviceStatusType;
   lastSeenAt: Date;
   lastSmsAt?: Date;
@@ -43,6 +48,10 @@ const paymentDeviceSchema = new Schema<PaymentDeviceDocument>(
     paymentProvider: {
       type: String,
     },
+    sim1PhoneNumber: { type: String },
+    sim1Providers: { type: String },
+    sim2PhoneNumber: { type: String },
+    sim2Providers: { type: String },
     status: {
       type: String,
       enum: Object.values(PaymentDeviceStatus),

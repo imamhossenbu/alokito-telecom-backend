@@ -226,6 +226,11 @@ router.post(
   adminMiddleware,
   asyncHandler(paymentDeviceController.adminRevokeDevice),
 );
+router.delete(
+  "/payment-devices/:id",
+  adminMiddleware,
+  asyncHandler(paymentDeviceController.adminDeleteDevice),
+);
 router.get(
   "/payment-devices/:id/events",
   adminMiddleware,

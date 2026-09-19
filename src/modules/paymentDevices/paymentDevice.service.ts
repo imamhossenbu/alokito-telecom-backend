@@ -325,15 +325,26 @@ export const paymentDeviceService = {
   async adminUpdateDevice(
     adminId: string,
     id: string,
-    data: { paymentProvider?: string; phoneNumber?: string }
+    data: {
+      paymentProvider?: string;
+      phoneNumber?: string;
+      sim1PhoneNumber?: string;
+      sim1Providers?: string;
+      sim2PhoneNumber?: string;
+      sim2Providers?: string;
+    }
   ) {
     const device = await PaymentDeviceModel.findOne({ _id: id, adminId: new Types.ObjectId(adminId) });
     if (!device) {
       throw new NotFoundError("PAYMENT_DEVICE_NOT_FOUND", "Device not found");
     }
 
-    if (data.paymentProvider) device.paymentProvider = data.paymentProvider as any;
-    if (data.phoneNumber) device.phoneNumber = data.phoneNumber;
+    if (data.paymentProvider !== undefined) device.paymentProvider = data.paymentProvider as any;
+    if (data.phoneNumber !== undefined) device.phoneNumber = data.phoneNumber;
+    if (data.sim1PhoneNumber !== undefined) device.sim1PhoneNumber = data.sim1PhoneNumber;
+    if (data.sim1Providers !== undefined) device.sim1Providers = data.sim1Providers;
+    if (data.sim2PhoneNumber !== undefined) device.sim2PhoneNumber = data.sim2PhoneNumber;
+    if (data.sim2Providers !== undefined) device.sim2Providers = data.sim2Providers;
 
     await device.save();
 
@@ -371,6 +382,26 @@ export const paymentDeviceService = {
     return device;
   },
 
+  // ── Admin: Delete device ──────────────────────────────
+  async adminDeleteDevice(adminId: string, id: string) {
+    const device = await PaymentDeviceModel.findOne({ _id: id, adminId: new Types.ObjectId(adminId) });
+    if (!device) {
+      throw new NotFoundError("PAYMENT_DEVICE_NOT_FOUND", "Device not found");
+    }
+
+    await PaymentDeviceModel.findByIdAndDelete(id);
+
+    await auditLogService.log({
+      actorType: ActorType.ADMIN,
+      actorId: adminId,
+      action: "PAYMENT_DEVICE_DELETED",
+      entityType: "PaymentDevice",
+      entityId: device._id,
+    });
+
+    return { success: true, message: "Device deleted successfully" };
+  },
+
   // ── Admin: List events for device ─────────────────────
   async adminGetDeviceEvents(adminId: string, deviceId: string, page = 1, limit = 20) {
     const filter = { paymentDeviceId: new Types.ObjectId(deviceId), adminId: new Types.ObjectId(adminId) };
@@ -383,6 +414,28 @@ export const paymentDeviceService = {
     return { total, page, limit, docs };
   },
 
+  // ── Device: Disconnect ────────────────────────────────
+  async deviceDisconnect(paymentDeviceId: string) {
+    const device = await PaymentDeviceModel.findById(paymentDeviceId);
+    if (!device) {
+      throw new NotFoundError("PAYMENT_DEVICE_NOT_FOUND", "Device not found");
+    }
+
+    device.status = PaymentDeviceStatus.DISCONNECTED;
+    device.lastSeenAt = new Date();
+    await device.save();
+
+    await auditLogService.log({
+      actorType: ActorType.DEVICE,
+      actorId: paymentDeviceId,
+      action: "PAYMENT_DEVICE_DISCONNECTED",
+      entityType: "PaymentDevice",
+      entityId: device._id,
+    });
+
+    return { success: true, message: "Device disconnected successfully" };
+  },
+
   // ── Active Payment Methods Listing ────────────────────
   async getActivePaymentMethods() {
     const threshold = Date.now() - env.DEVICE_HEARTBEAT_TIMEOUT_SECONDS * 1000;
@@ -390,11 +443,15 @@ export const paymentDeviceService = {
     // Find all devices mapping active providers
     const devices = await PaymentDeviceModel.find({
       status: PaymentDeviceStatus.CONNECTED,
-      paymentProvider: { $exists: true },
-      phoneNumber: { $exists: true },
     });
 
-    const activeMethods = [];
+    const activeMethods: Array<{
+      provider: string;
+      paymentNumber: string;
+      simSlot?: number;
+      status: string;
+    }> = [];
+
     for (const d of devices) {
       // Check if actually offline
       if (d.lastSeenAt.getTime() < threshold) {
@@ -402,11 +459,47 @@ export const paymentDeviceService = {
         await d.save();
         continue;
       }
-      activeMethods.push({
-        provider: d.paymentProvider,
-        paymentNumber: d.phoneNumber,
-        status: "AVAILABLE",
-      });
+
+      // Check SIM 1 & SIM 2 mapping
+      if (d.sim1PhoneNumber && d.sim1Providers) {
+        const provs = d.sim1Providers.split(/[,|]/).map((p) => p.trim()).filter(Boolean);
+        for (const prov of provs) {
+          activeMethods.push({
+            provider: prov,
+            paymentNumber: d.sim1PhoneNumber,
+            simSlot: 1,
+            status: "AVAILABLE",
+          });
+        }
+      }
+
+      if (d.sim2PhoneNumber && d.sim2Providers) {
+        const provs = d.sim2Providers.split(/[,|]/).map((p) => p.trim()).filter(Boolean);
+        for (const prov of provs) {
+          activeMethods.push({
+            provider: prov,
+            paymentNumber: d.sim2PhoneNumber,
+            simSlot: 2,
+            status: "AVAILABLE",
+          });
+        }
+      }
+
+      // Legacy single phoneNumber / paymentProvider support
+      if (d.phoneNumber && d.paymentProvider && !d.sim1PhoneNumber) {
+        const provs = d.paymentProvider.split(/[,|]/).map((p) => p.trim()).filter(Boolean);
+        const phones = d.phoneNumber.split(/[,|]/).map((p) => p.trim()).filter(Boolean);
+        phones.forEach((phone, idx) => {
+          provs.forEach((prov) => {
+            activeMethods.push({
+              provider: prov,
+              paymentNumber: phone,
+              simSlot: idx + 1,
+              status: "AVAILABLE",
+            });
+          });
+        });
+      }
     }
 
     return activeMethods;

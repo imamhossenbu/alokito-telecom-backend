@@ -49,6 +49,14 @@ export const paymentDeviceController = {
     sendSuccess(res, { data: device });
   },
 
+  async adminDeleteDevice(req: Request, res: Response) {
+    if (!req.actor || req.actor.type !== "ADMIN") {
+      throw new UnauthorizedError();
+    }
+    const result = await paymentDeviceService.adminDeleteDevice(req.actor.adminId, req.params.id);
+    sendSuccess(res, { data: result });
+  },
+
   async adminGetDeviceEvents(req: Request, res: Response) {
     if (!req.actor || req.actor.type !== "ADMIN") {
       throw new UnauthorizedError();
@@ -68,6 +76,14 @@ export const paymentDeviceController = {
   async devicePair(req: Request, res: Response) {
     // This is public/device-initiated (requires the pairing code from Admin)
     const result = await paymentDeviceService.devicePair(req.body);
+    sendSuccess(res, { data: result });
+  },
+
+  async deviceDisconnect(req: Request, res: Response) {
+    if (!req.actor || req.actor.type !== "PAYMENT_DEVICE") {
+      throw new UnauthorizedError();
+    }
+    const result = await paymentDeviceService.deviceDisconnect(req.actor.paymentDeviceId);
     sendSuccess(res, { data: result });
   },
 

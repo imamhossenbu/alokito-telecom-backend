@@ -12,5 +12,6 @@ router.post("/pair", asyncHandler(paymentDeviceController.devicePair));
 router.post("/setup", paymentDeviceMiddleware, asyncHandler(paymentDeviceController.deviceSetup));
 router.post("/heartbeat", paymentDeviceMiddleware, asyncHandler(paymentDeviceController.deviceHeartbeat));
 router.post("/sms-events", paymentDeviceMiddleware, asyncHandler(paymentDeviceController.deviceIngestSms));
+router.post("/disconnect", paymentDeviceMiddleware, asyncHandler(paymentDeviceController.deviceDisconnect));
 
 export default router;
