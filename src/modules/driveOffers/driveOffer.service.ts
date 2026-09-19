@@ -48,13 +48,18 @@ export const driveOfferService = {
     },
     actor: { id: string; ipAddress?: string; userAgent?: string }
   ) {
-    const operator = await operatorRepository.findById(data.operatorId);
+    let operator = Types.ObjectId.isValid(data.operatorId)
+      ? await operatorRepository.findById(data.operatorId)
+      : await operatorRepository.findByCode(data.operatorId);
+    if (!operator) {
+      operator = await operatorRepository.findByCode(data.operatorId);
+    }
     if (!operator) {
       throw new NotFoundError("OFFER_NOT_FOUND", "Operator not found");
     }
 
     const offer = await driveOfferRepository.create({
-      operatorId: new Types.ObjectId(data.operatorId),
+      operatorId: operator._id,
       offerName: data.offerName,
       category: data.category as any,
       offerType: data.offerType,
@@ -103,16 +108,20 @@ export const driveOfferService = {
       throw new NotFoundError("OFFER_NOT_FOUND", "Drive offer not found");
     }
 
+    let resolvedOperatorId: Types.ObjectId | undefined;
     if (data.operatorId) {
-      const operator = await operatorRepository.findById(data.operatorId);
+      const operator = Types.ObjectId.isValid(data.operatorId)
+        ? await operatorRepository.findById(data.operatorId)
+        : await operatorRepository.findByCode(data.operatorId);
       if (!operator) {
         throw new NotFoundError("OFFER_NOT_FOUND", "Operator not found");
       }
+      resolvedOperatorId = operator._id;
     }
 
     const updateFields: any = {
       ...data,
-      operatorId: data.operatorId ? new Types.ObjectId(data.operatorId) : undefined,
+      operatorId: resolvedOperatorId,
       purchasePrice: data.purchasePrice !== undefined ? bdtToPoisha(data.purchasePrice) : undefined,
       sellingPrice: data.sellingPrice !== undefined ? bdtToPoisha(data.sellingPrice) : undefined,
     };

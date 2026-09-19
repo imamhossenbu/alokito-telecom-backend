@@ -47,13 +47,18 @@ export const offerService = {
     },
     actor: { id: string; ipAddress?: string; userAgent?: string }
   ) {
-    const operator = await operatorRepository.findById(data.operatorId);
+    let operator = Types.ObjectId.isValid(data.operatorId)
+      ? await operatorRepository.findById(data.operatorId)
+      : await operatorRepository.findByCode(data.operatorId);
+    if (!operator) {
+      operator = await operatorRepository.findByCode(data.operatorId);
+    }
     if (!operator) {
       throw new NotFoundError("OFFER_NOT_FOUND", "Operator not found");
     }
 
     const offer = await offerRepository.create({
-      operatorId: new Types.ObjectId(data.operatorId),
+      operatorId: operator._id,
       name: data.name,
       category: data.category as any,
       type: data.type,
@@ -100,16 +105,20 @@ export const offerService = {
       throw new NotFoundError("OFFER_NOT_FOUND", "Offer not found");
     }
 
+    let resolvedOperatorId: Types.ObjectId | undefined;
     if (data.operatorId) {
-      const operator = await operatorRepository.findById(data.operatorId);
+      const operator = Types.ObjectId.isValid(data.operatorId)
+        ? await operatorRepository.findById(data.operatorId)
+        : await operatorRepository.findByCode(data.operatorId);
       if (!operator) {
         throw new NotFoundError("OFFER_NOT_FOUND", "Operator not found");
       }
+      resolvedOperatorId = operator._id;
     }
 
     const updateFields: any = {
       ...data,
-      operatorId: data.operatorId ? new Types.ObjectId(data.operatorId) : undefined,
+      operatorId: resolvedOperatorId,
       sellingPrice: data.sellingPrice !== undefined ? bdtToPoisha(data.sellingPrice) : undefined,
     };
 

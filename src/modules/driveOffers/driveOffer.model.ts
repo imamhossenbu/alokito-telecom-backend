@@ -11,7 +11,7 @@ export interface DriveOfferDocument extends Document {
   _id: Types.ObjectId;
   operatorId: Types.ObjectId;
   offerName: string;
-  category: OfferCategoryType;
+  category: string;
   offerType: string;
   offerValue: string;
   validity: string;
@@ -32,8 +32,8 @@ const driveOfferSchema = new Schema<DriveOfferDocument>(
     offerName: { type: String, required: true, trim: true },
     category: {
       type: String,
-      enum: Object.values(OfferCategory),
       required: true,
+      trim: true,
     },
     offerType: { type: String, required: true, trim: true },
     offerValue: { type: String, required: true, trim: true },

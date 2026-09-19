@@ -2,11 +2,11 @@ import { z } from "../../shared/utils/zod";
 import { DriveOfferStatus } from "./driveOffer.model";
 
 export const createDriveOfferBodySchema = z.object({
-  operatorId: z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid operatorId"),
-  offerName: z.string().min(2).max(200),
-  category: z.enum(["INTERNET", "MINUTES", "BUNDLE", "SMS", "CALL_RATE", "OTHER"]),
-  offerType: z.string().min(1),
-  offerValue: z.string().min(1),
+  operatorId: z.string().min(1, "Operator is required"),
+  offerName: z.string().min(1).max(200),
+  category: z.string().min(1),
+  offerType: z.string().min(1).default("DRIVE"),
+  offerValue: z.string().min(1).default("Standard"),
   validity: z.string().min(1),
   purchasePrice: z.number().min(0), // BDT
   sellingPrice: z.number().min(0), // BDT
@@ -17,9 +17,9 @@ export const createDriveOfferBodySchema = z.object({
 export type CreateDriveOfferBody = z.infer<typeof createDriveOfferBodySchema>;
 
 export const updateDriveOfferBodySchema = z.object({
-  operatorId: z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid operatorId").optional(),
-  offerName: z.string().min(2).max(200).optional(),
-  category: z.enum(["INTERNET", "MINUTES", "BUNDLE", "SMS", "CALL_RATE", "OTHER"]).optional(),
+  operatorId: z.string().min(1).optional(),
+  offerName: z.string().min(1).max(200).optional(),
+  category: z.string().min(1).optional(),
   offerType: z.string().min(1).optional(),
   offerValue: z.string().min(1).optional(),
   validity: z.string().min(1).optional(),
@@ -32,8 +32,8 @@ export const updateDriveOfferBodySchema = z.object({
 export type UpdateDriveOfferBody = z.infer<typeof updateDriveOfferBodySchema>;
 
 export const listDriveOffersQuerySchema = z.object({
-  operatorId: z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid operatorId").optional(),
-  category: z.enum(["INTERNET", "MINUTES", "BUNDLE", "SMS", "CALL_RATE", "OTHER"]).optional(),
+  operatorId: z.string().optional(),
+  category: z.string().optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
 });

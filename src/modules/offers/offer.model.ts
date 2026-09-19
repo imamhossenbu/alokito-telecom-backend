@@ -11,7 +11,7 @@ export interface OfferDocument extends Document {
   _id: Types.ObjectId;
   operatorId: Types.ObjectId;
   name: string;
-  category: OfferCategoryType;
+  category: string;
   type: string;
   offerValue: string;
   validity: string;
@@ -30,8 +30,8 @@ const offerSchema = new Schema<OfferDocument>(
     name: { type: String, required: true, trim: true },
     category: {
       type: String,
-      enum: Object.values(OfferCategory),
       required: true,
+      trim: true,
     },
     type: { type: String, required: true, trim: true },
     offerValue: { type: String, required: true, trim: true },
