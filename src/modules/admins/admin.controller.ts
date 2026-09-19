@@ -10,8 +10,10 @@ import { sendSuccess } from "../../shared/utils/api-response";
 import { adminLoginBodySchema } from "../auth/auth.schema";
 
 function getAdminId(req: Request): string {
+  if (req.actor && req.actor.type === "ADMIN") {
+    return req.actor.adminId;
+  }
   return (
-    req.actor?.adminId ||
     (req as any).admin?.id ||
     (req as any).admin?._id ||
     (req as any).admin?.sub ||

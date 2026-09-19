@@ -6,6 +6,7 @@ import { TopUpModel } from "../topups/topup.model";
 import { OrderModel } from "../orders/order.model";
 import { RefundModel } from "../refunds/refund.model";
 import { PaymentDeviceModel } from "../paymentDevices/paymentDevice.model";
+import { WalletModel } from "../wallets/wallet.model";
 import { WalletTransactionModel } from "../walletTransactions/walletTransaction.model";
 import { AppError, ForbiddenError } from "../../shared/errors/app-error";
 import { normalizeEmail } from "../../shared/utils/normalize";
@@ -323,10 +324,9 @@ export const adminProfileService = {
   },
 
   async changePassword(adminId: string, oldPass: string, newPass: string) {
-    let admin = adminId ? await AdminModel.findById(adminId).select("+passwordHash") : null;
-    if (!admin) {
-      admin = await AdminModel.findOne().select("+passwordHash");
-    }
+    const admin: any = adminId
+      ? await AdminModel.findById(adminId).select("+passwordHash")
+      : await AdminModel.findOne().select("+passwordHash");
     if (!admin) {
       throw new AppError("ADMIN_NOT_FOUND", "Admin not found", 404);
     }
@@ -346,7 +346,7 @@ const adminReadNotificationIds = new Set<string>();
 export const adminNotificationService = {
   async getNotifications(adminId?: string) {
     // 1. Fetch latest pending orders
-    const pendingOrders = await OrderModel.find({ status: "PENDING" })
+    const pendingOrders = await OrderModel.find({ orderStatus: "ACTIVATION_PENDING" })
       .populate("userId", "name phone")
       .populate("offerId", "title")
       .sort({ createdAt: -1 })
@@ -354,14 +354,14 @@ export const adminNotificationService = {
       .lean();
 
     // 2. Fetch latest processing orders
-    const processingOrders = await OrderModel.find({ status: "PROCESSING" })
+    const processingOrders = await OrderModel.find({ orderStatus: "ACTIVATION_PROCESSING" })
       .populate("userId", "name phone")
       .sort({ createdAt: -1 })
       .limit(5)
       .lean();
 
     // 3. Fetch latest active devices
-    const devices = await PaymentDeviceModel.find({ isRevoked: false })
+    const devices = await PaymentDeviceModel.find({ status: { $ne: "REVOKED" } })
       .sort({ updatedAt: -1 })
       .limit(5)
       .lean();
@@ -395,7 +395,7 @@ export const adminNotificationService = {
       notifications.push({
         id,
         title: `Pending Order: ${ord.orderNumber || ord._id.toString().slice(-6).toUpperCase()}`,
-        message: `${(ord.userId as any)?.name || 'User'} requested ${(ord.offerId as any)?.title || 'Offer'} for ৳${poishaToBdt(ord.amount)}`,
+        message: `${(ord.userId as any)?.name || 'User'} requested ${(ord as any).offerName || (ord.offerId as any)?.title || 'Offer'} for ৳${poishaToBdt(ord.price || 0)}`,
         type: "ORDER",
         isRead: adminReadNotificationIds.has(id),
         createdAt: ord.createdAt,
@@ -409,7 +409,7 @@ export const adminNotificationService = {
       notifications.push({
         id,
         title: `SMS Listener: ${dev.deviceName || 'Device'}`,
-        message: isOnline ? `Device is online & actively listening on SIM ${dev.sim1Operator || 'SIM 1'}` : `Device is offline or inactive since ${dev.lastSeenAt ? new Date(dev.lastSeenAt).toLocaleTimeString() : 'awhile'}`,
+        message: isOnline ? `Device is online & actively listening on SIM ${dev.simOperator || 'SIM 1'}` : `Device is offline or inactive since ${dev.lastSeenAt ? new Date(dev.lastSeenAt).toLocaleTimeString() : 'awhile'}`,
         type: "DEVICE",
         isRead: adminReadNotificationIds.has(id),
         createdAt: dev.updatedAt || dev.createdAt,
