@@ -30,7 +30,12 @@ export async function seedInitialData(): Promise<void> {
       operatorMap[op.code] = existing;
     }
 
-    // ── 2. Seed Users & Wallets ────────────────────────────
+    // ── 2. Seed Demo Users & Wallets only if explicitly requested ──────
+    if (process.env.SEED_DEMO_DATA !== "true") {
+      logger.info("✅ Essential seed data (operators & admin) verified successfully");
+      return;
+    }
+
     const defaultPinHash = await argon2.hash("1234");
     const demoUsers = [
       {
