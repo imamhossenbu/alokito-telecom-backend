@@ -14,6 +14,7 @@ const driveOfferSchema = registry.register(
     offerValue: z.string(),
     validity: z.string(),
     sellingPrice: z.number(), // Customer only sees selling price
+    regularPrice: z.number().optional(),
     activationCode: z.string().optional(),
     description: z.string().optional(),
     status: z.enum(["ACTIVE", "INACTIVE"]),
@@ -32,6 +33,7 @@ const adminDriveOfferSchema = registry.register(
     validity: z.string(),
     purchasePrice: z.number(), // Admin sees purchase price
     sellingPrice: z.number(),
+    regularPrice: z.number().optional(),
     activationCode: z.string().optional(),
     description: z.string().optional(),
     status: z.enum(["ACTIVE", "INACTIVE"]),

@@ -53473,7 +53473,7 @@ IA(a){var s,r
 if(a==null)return 0
 if(typeof a=="number")s=a
 else{r=A.aTO(J.Y(a))
-s=r==null?0:r}return s>1000?s/100:s},
+s=r==null?0:r}return s>=100?s/100:s},
 apK(a){var s="INTERNET",r=a.toUpperCase()
 if(B.b.m(r,"FAMILY"))return"FAMILY_PACK"
 if(B.b.m(r,"MINUTE")||B.b.m(r,"VOICE"))return"MINUTES"
@@ -53935,7 +53935,7 @@ M3(a){var s,r
 if(a==null)return 0
 if(typeof a=="number")s=a
 else{r=A.aTO(J.Y(a))
-s=r==null?0:r}return s>1000?s/100:s},
+s=r==null?0:r}return s>=100?s/100:s},
 gaiC(){var s=this,r=B.b.aL(s.d.a.a),q=s.r,p=s.e,o=A.a1(p).i("aw<1>")
 r=A.a7(new A.aw(p,new A.av3(s,q===0,r.toLowerCase()),o),o.i("J.E"))
 return r},
@@ -54618,7 +54618,7 @@ CZ(a){var s,r
 if(a==null)return 0
 if(typeof a=="number")s=a
 else{r=A.aTO(J.Y(a))
-s=r==null?0:r}return s>1000?s/100:s},
+s=r==null?0:r}return s>=100?s/100:s},
 tb(){var s=0,r=A.w(t.H),q=1,p=[],o=this,n,m,l,k,j,i,h
 var $async$tb=A.r(function(a,b){if(a===1){p.push(b)
 s=q}for(;;)switch(s){case 0:i=o.c
