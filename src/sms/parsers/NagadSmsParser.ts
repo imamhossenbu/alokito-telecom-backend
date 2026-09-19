@@ -6,8 +6,9 @@ export class NagadSmsParser implements SmsParser {
   canParse(smsContent: string): boolean {
     const lower = smsContent.toLowerCase();
     return (
-      (lower.includes("nagad") || lower.includes("received")) &&
-      (lower.includes("txnid") || lower.includes("txn id"))
+      lower.includes("nagad") ||
+      (lower.includes("money in") && (lower.includes("txnid") || lower.includes("txn id"))) ||
+      (lower.includes("cash in") && (lower.includes("txnid") || lower.includes("txn id")) && !lower.includes("bkash"))
     );
   }
 
