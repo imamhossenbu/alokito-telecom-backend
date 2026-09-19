@@ -69,13 +69,13 @@ export function createApp(): Application {
   app.get("/download/:file", (req, res) => {
     const raw = (req.params.file || "").toLowerCase();
     let target = req.params.file;
-    if (raw === "admin" || raw === "admin.apk" || raw === "drive-offer-admin" || raw === "drive-offer-admin.apk") {
+    if (raw === "admin" || raw === "admin.apk" || raw === "drive-offer-admin" || raw === "drive-offer-admin.apk" || raw === "alokito-admin" || raw === "alokito-admin.apk") {
       target = "drive-offer-admin.apk";
     } else if (raw === "admin-v7a" || raw === "admin-v7a.apk" || raw === "drive-offer-admin-v7a.apk") {
       target = "drive-offer-admin-v7a.apk";
-    } else if (raw === "listener" || raw === "listener.apk" || raw === "driver-sms-listener" || raw === "driver-sms-listener.apk") {
+    } else if (raw === "listener" || raw === "listener.apk" || raw === "driver-sms-listener" || raw === "driver-sms-listener.apk" || raw === "drive-offer-listener" || raw === "drive-offer-listener.apk" || raw === "sms-listener" || raw === "sms-listener.apk") {
       target = "driver-sms-listener.apk";
-    } else if (raw === "listener-v7a" || raw === "listener-v7a.apk" || raw === "driver-sms-listener-v7a.apk") {
+    } else if (raw === "listener-v7a" || raw === "listener-v7a.apk" || raw === "driver-sms-listener-v7a.apk" || raw === "drive-offer-listener-v7a.apk") {
       target = "driver-sms-listener-v7a.apk";
     }
 
