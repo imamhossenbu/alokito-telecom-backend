@@ -62,11 +62,26 @@ export function createApp(): Application {
     }),
   );
 
-  app.use(compression());
+  app.use(compression({
+    level: 6,
+    threshold: 1024,
+  }));
   app.use(cookieParser());
-  app.use("/public", express.static("public"));
-  app.use("/admin", express.static(path.join(process.cwd(), "public", "admin-web")));
+  app.use("/public", express.static("public", {
+    maxAge: "7d",
+  }));
+  app.use("/admin", express.static(path.join(process.cwd(), "public", "admin-web"), {
+    maxAge: "30d",
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith("index.html")) {
+        res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+      } else if (filePath.endsWith(".js") || filePath.endsWith(".wasm") || filePath.endsWith(".ttf") || filePath.endsWith(".png") || filePath.endsWith(".json")) {
+        res.setHeader("Cache-Control", "public, max-age=2592000, immutable");
+      }
+    },
+  }));
   app.get(["/admin", "/admin/*"], (_req, res) => {
+    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
     res.sendFile(path.join(process.cwd(), "public", "admin-web", "index.html"));
   });
 

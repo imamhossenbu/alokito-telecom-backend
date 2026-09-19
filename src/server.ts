@@ -31,6 +31,16 @@ async function bootstrap(): Promise<void> {
   // Start Socket.io Server
   initSocketServer(server);
 
+  // Self Keep-Alive ping to prevent Render free tier cold sleep (every 9 mins)
+  setInterval(() => {
+    try {
+      const httpModule = require("https");
+      httpModule.get("https://alokito-telecom-backend-1.onrender.com/api/v1/health", (res: any) => {
+        // Keep container warm
+      }).on("error", () => {});
+    } catch (_) {}
+  }, 9 * 60 * 1000).unref();
+
   const shutdown = async (signal: string): Promise<void> => {
     logger.info(`${signal} received, shutting down gracefully...`);
     server.close(async () => {
