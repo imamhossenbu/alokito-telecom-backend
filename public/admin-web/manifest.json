@@ -1,6 +1,6 @@
 {
-    "name": "drive_offer_admin",
-    "short_name": "drive_offer_admin",
+    "name": "Alokito Telecom Admin",
+    "short_name": "Alokito Admin",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
