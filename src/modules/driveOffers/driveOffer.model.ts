@@ -19,6 +19,8 @@ export interface DriveOfferDocument extends Document {
   purchasePrice: number;
   /** Integer poisha (1 BDT = 100 poisha). Public. */
   sellingPrice: number;
+  /** Integer poisha (1 BDT = 100 poisha). Optional regular MRP. */
+  regularPrice?: number;
   activationCode?: string;
   description?: string;
   status: DriveOfferStatusType;
@@ -40,6 +42,7 @@ const driveOfferSchema = new Schema<DriveOfferDocument>(
     validity: { type: String, required: true, trim: true },
     purchasePrice: { type: Number, required: true, min: 0 },
     sellingPrice: { type: Number, required: true, min: 0 },
+    regularPrice: { type: Number, min: 0 },
     activationCode: { type: String },
     description: { type: String },
     status: {

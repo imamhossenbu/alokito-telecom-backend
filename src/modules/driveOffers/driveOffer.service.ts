@@ -42,6 +42,7 @@ export const driveOfferService = {
       validity: string;
       purchasePrice: number; // BDT
       sellingPrice: number; // BDT
+      regularPrice?: number; // BDT
       activationCode?: string;
       description?: string;
       status: string;
@@ -67,6 +68,7 @@ export const driveOfferService = {
       validity: data.validity,
       purchasePrice: bdtToPoisha(data.purchasePrice),
       sellingPrice: bdtToPoisha(data.sellingPrice),
+      regularPrice: data.regularPrice !== undefined ? bdtToPoisha(data.regularPrice) : undefined,
       activationCode: data.activationCode,
       description: data.description,
       status: data.status as any,
@@ -97,6 +99,7 @@ export const driveOfferService = {
       validity?: string;
       purchasePrice?: number; // BDT
       sellingPrice?: number; // BDT
+      regularPrice?: number; // BDT
       activationCode?: string;
       description?: string;
       status?: string;
@@ -124,6 +127,7 @@ export const driveOfferService = {
       operatorId: resolvedOperatorId,
       purchasePrice: data.purchasePrice !== undefined ? bdtToPoisha(data.purchasePrice) : undefined,
       sellingPrice: data.sellingPrice !== undefined ? bdtToPoisha(data.sellingPrice) : undefined,
+      regularPrice: data.regularPrice !== undefined ? bdtToPoisha(data.regularPrice) : undefined,
     };
 
     // Remove undefined fields

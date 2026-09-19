@@ -9,6 +9,7 @@ export const createOfferBodySchema = z.object({
   offerValue: z.string().min(1).default("Standard"),
   validity: z.string().min(1),
   sellingPrice: z.number().min(0), // BDT
+  regularPrice: z.number().min(0).optional(), // BDT
   activationCode: z.string().optional(),
   description: z.string().optional(),
   status: z.enum(["ACTIVE", "INACTIVE"]).default(OfferStatus.ACTIVE),
@@ -23,6 +24,7 @@ export const updateOfferBodySchema = z.object({
   offerValue: z.string().min(1).optional(),
   validity: z.string().min(1).optional(),
   sellingPrice: z.number().min(0).optional(), // BDT
+  regularPrice: z.number().min(0).optional(), // BDT
   activationCode: z.string().optional(),
   description: z.string().optional(),
   status: z.enum(["ACTIVE", "INACTIVE"]).optional(),

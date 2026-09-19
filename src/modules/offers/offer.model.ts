@@ -17,6 +17,8 @@ export interface OfferDocument extends Document {
   validity: string;
   /** Integer poisha (1 BDT = 100 poisha) */
   sellingPrice: number;
+  /** Integer poisha (1 BDT = 100 poisha) */
+  regularPrice?: number;
   activationCode?: string;
   description?: string;
   status: OfferStatusType;
@@ -37,6 +39,7 @@ const offerSchema = new Schema<OfferDocument>(
     offerValue: { type: String, required: true, trim: true },
     validity: { type: String, required: true, trim: true },
     sellingPrice: { type: Number, required: true, min: 0 },
+    regularPrice: { type: Number, min: 0 },
     activationCode: { type: String },
     description: { type: String },
     status: {

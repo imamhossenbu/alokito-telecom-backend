@@ -10,6 +10,7 @@ export const createDriveOfferBodySchema = z.object({
   validity: z.string().min(1),
   purchasePrice: z.number().min(0), // BDT
   sellingPrice: z.number().min(0), // BDT
+  regularPrice: z.number().min(0).optional(), // BDT
   activationCode: z.string().optional(),
   description: z.string().optional(),
   status: z.enum(["ACTIVE", "INACTIVE"]).default(DriveOfferStatus.ACTIVE),
@@ -25,6 +26,7 @@ export const updateDriveOfferBodySchema = z.object({
   validity: z.string().min(1).optional(),
   purchasePrice: z.number().min(0).optional(), // BDT
   sellingPrice: z.number().min(0).optional(), // BDT
+  regularPrice: z.number().min(0).optional(), // BDT
   activationCode: z.string().optional(),
   description: z.string().optional(),
   status: z.enum(["ACTIVE", "INACTIVE"]).optional(),

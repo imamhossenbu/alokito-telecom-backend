@@ -41,6 +41,7 @@ export const offerService = {
       offerValue: string;
       validity: string;
       sellingPrice: number; // BDT
+      regularPrice?: number; // BDT
       activationCode?: string;
       description?: string;
       status: string;
@@ -65,6 +66,7 @@ export const offerService = {
       offerValue: data.offerValue,
       validity: data.validity,
       sellingPrice: bdtToPoisha(data.sellingPrice),
+      regularPrice: data.regularPrice !== undefined ? bdtToPoisha(data.regularPrice) : undefined,
       activationCode: data.activationCode,
       description: data.description,
       status: data.status as any,
@@ -94,6 +96,7 @@ export const offerService = {
       offerValue?: string;
       validity?: string;
       sellingPrice?: number; // BDT
+      regularPrice?: number; // BDT
       activationCode?: string;
       description?: string;
       status?: string;
@@ -120,6 +123,7 @@ export const offerService = {
       ...data,
       operatorId: resolvedOperatorId,
       sellingPrice: data.sellingPrice !== undefined ? bdtToPoisha(data.sellingPrice) : undefined,
+      regularPrice: data.regularPrice !== undefined ? bdtToPoisha(data.regularPrice) : undefined,
     };
 
     // Remove undefined fields
