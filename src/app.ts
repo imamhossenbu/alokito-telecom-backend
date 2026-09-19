@@ -47,7 +47,12 @@ export function createApp(): Application {
           return callback(null, true); // Allow all origins in development
         }
 
-        if (env.corsOrigins.includes(origin)) {
+        if (
+          origin.startsWith("http://localhost:") ||
+          origin.startsWith("http://127.0.0.1:") ||
+          origin.includes("onrender.com") ||
+          env.corsOrigins.includes(origin)
+        ) {
           return callback(null, true);
         }
         
