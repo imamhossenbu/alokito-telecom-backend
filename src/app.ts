@@ -60,6 +60,10 @@ export function createApp(): Application {
   app.use(compression());
   app.use(cookieParser());
   app.use("/public", express.static("public"));
+  app.use("/admin", express.static(path.join(process.cwd(), "public", "admin-web")));
+  app.get(["/admin", "/admin/*"], (_req, res) => {
+    res.sendFile(path.join(process.cwd(), "public", "admin-web", "index.html"));
+  });
 
   // --- APK Download Endpoints (Immediate auto-download on click) ---
   app.get("/download/:file", (req, res) => {
