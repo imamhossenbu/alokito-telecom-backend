@@ -45,7 +45,8 @@ export const paymentDeviceService = {
 
   // ── Device: Pair completion ───────────────────────────
   async devicePair(data: {
-    pairingCode: string;
+    pairingCode?: string;
+    code?: string;
     deviceId: string;
     deviceName?: string;
     phoneNumber?: string;
@@ -53,7 +54,11 @@ export const paymentDeviceService = {
     simOperator?: string;
     appVersion?: string;
   }) {
-    const pairingCodeHash = hashPairingCode(data.pairingCode);
+    const rawCode = (data.pairingCode || data.code || "").toString().trim();
+    if (!rawCode) {
+      throw new AppError("PAIRING_CODE_INVALID", "Pairing code is required", 400);
+    }
+    const pairingCodeHash = hashPairingCode(rawCode);
     const session = await PaymentPairingSessionModel.findOne({
       pairingCodeHash,
       status: PairingStatus.PENDING,
