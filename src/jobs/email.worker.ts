@@ -6,7 +6,7 @@ import { EmailJobData } from "./email.job";
 
 let emailWorker: Worker<EmailJobData> | null = null;
 
-if (env.REDIS_URL) {
+if (env.REDIS_URL && process.env.ENABLE_REDIS === "true") {
   logger.info("Initializing BullMQ emailWorker...");
   emailWorker = new Worker<EmailJobData>(
     "emailQueue",
@@ -18,6 +18,10 @@ if (env.REDIS_URL) {
     {
       connection: {
         url: env.REDIS_URL,
+        retryStrategy: (times) => {
+          if (times > 2) return null; // Stop retrying after 2 attempts
+          return 2000;
+        },
       },
       concurrency: 5, // Process up to 5 email jobs concurrently
     }
@@ -31,8 +35,16 @@ if (env.REDIS_URL) {
     logger.error({ jobId: job?.id, err }, "Background email job failed");
   });
 
-  emailWorker.on("error", (err) => {
-    logger.warn({ err: err?.message || err }, "BullMQ emailWorker connection warning");
+  emailWorker.on("error", async (err: any) => {
+    if (err?.message?.includes("max requests limit exceeded") || err?.message?.includes("quota")) {
+      logger.warn("Upstash Redis quota exceeded. Closing BullMQ emailWorker.");
+      try {
+        await emailWorker?.close();
+      } catch (_) {}
+      emailWorker = null;
+    } else {
+      logger.warn({ err: err?.message || err }, "BullMQ emailWorker connection warning");
+    }
   });
 }
 
