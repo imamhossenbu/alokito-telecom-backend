@@ -26,7 +26,14 @@ export function createRateLimiter(options: {
     ? new RedisStore({
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
-        sendCommand: (...args: string[]) => redisClient.call(args[0], ...args.slice(1)),
+        sendCommand: async (...args: string[]) => {
+          try {
+            if (!redisClient) return null;
+            return await redisClient.call(args[0], ...args.slice(1));
+          } catch {
+            return null;
+          }
+        },
       })
     : undefined;
 
@@ -35,6 +42,7 @@ export function createRateLimiter(options: {
     max,
     standardHeaders: true,
     legacyHeaders: false,
+    passOnStoreError: true,
     store,
     keyGenerator: (req: Request) => {
       const extra = keyExtra ? keyExtra(req) : "";

@@ -14,8 +14,15 @@ if (env.REDIS_URL) {
     logger.info("Redis connection established successfully");
   });
 
-  redisClient.on("error", (err) => {
-    logger.error({ err }, "Redis connection error");
+  redisClient.on("error", (err: any) => {
+    logger.error({ err: err?.message || err }, "Redis connection error");
+    if (err?.message?.includes("max requests limit exceeded") || err?.message?.includes("quota")) {
+      logger.warn("Upstash Redis quota exceeded. Falling back to in-memory mode.");
+      try {
+        redisClient?.disconnect();
+      } catch (_) {}
+      redisClient = null;
+    }
   });
 } else {
   logger.warn("REDIS_URL is not set. Redis-based features will fall back to in-memory mode.");
