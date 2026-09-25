@@ -27,6 +27,10 @@ if (env.REDIS_URL) {
       removeOnFail: false,
     },
   });
+
+  emailQueue.on("error", (err) => {
+    logger.warn({ err: err?.message || err }, "BullMQ emailQueue connection warning");
+  });
 }
 
 export async function queueEmail(data: EmailJobData): Promise<void> {

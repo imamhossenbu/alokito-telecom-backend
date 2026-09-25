@@ -1,8 +1,6 @@
 import rateLimit, { Options } from "express-rate-limit";
-import { RedisStore } from "rate-limit-redis";
 import { Request } from "express";
 import { env } from "../config/env";
-import { redisClient } from "../config/redis";
 
 /**
  * Creates a rate limiter scoped by IP + (optional) account/device identifier
@@ -22,28 +20,11 @@ export function createRateLimiter(options: {
     message,
   } = options;
 
-  const store = redisClient
-    ? new RedisStore({
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        sendCommand: async (...args: string[]) => {
-          try {
-            if (!redisClient) return null;
-            return await redisClient.call(args[0], ...args.slice(1));
-          } catch {
-            return null;
-          }
-        },
-      })
-    : undefined;
-
   return rateLimit({
     windowMs,
     max,
     standardHeaders: true,
     legacyHeaders: false,
-    passOnStoreError: true,
-    store,
     keyGenerator: (req: Request) => {
       const extra = keyExtra ? keyExtra(req) : "";
       return `rl:${req.ip}:${extra}`;

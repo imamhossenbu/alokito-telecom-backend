@@ -30,6 +30,10 @@ if (env.REDIS_URL) {
   emailWorker.on("failed", (job, err) => {
     logger.error({ jobId: job?.id, err }, "Background email job failed");
   });
+
+  emailWorker.on("error", (err) => {
+    logger.warn({ err: err?.message || err }, "BullMQ emailWorker connection warning");
+  });
 }
 
 export { emailWorker };
