@@ -25,8 +25,8 @@ const envSchema = z.object({
   // Nodemailer over SMTP — works with any provider (Gmail App Password,
   // Brevo/Sendinblue free tier, Mailtrap for dev testing, etc).
   SMTP_HOST: z.string().min(1, "SMTP_HOST is required"),
-  SMTP_PORT: z.coerce.number().default(587),
-  SMTP_SECURE: z.coerce.boolean().default(false),
+  SMTP_PORT: z.coerce.number().default(465),
+  SMTP_SECURE: z.coerce.boolean().default(true),
   SMTP_USER: z.string().min(1, "SMTP_USER is required"),
   SMTP_PASS: z.string().min(1, "SMTP_PASS is required"),
   EMAIL_FROM: z.string().default("Alokito Telecom <no-reply@alokitotelecom.app>"),
