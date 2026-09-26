@@ -71,32 +71,38 @@ export function createApp(): Application {
     maxAge: "7d",
   }));
   app.use("/admin", express.static(path.join(process.cwd(), "public", "admin-web"), {
-    maxAge: "30d",
     setHeaders: (res, filePath) => {
-      if (filePath.endsWith("index.html")) {
-        res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-      } else if (filePath.endsWith(".js") || filePath.endsWith(".wasm") || filePath.endsWith(".ttf") || filePath.endsWith(".png") || filePath.endsWith(".json")) {
-        res.setHeader("Cache-Control", "public, max-age=2592000, immutable");
+      if (filePath.endsWith("index.html") || filePath.endsWith(".js") || filePath.endsWith(".json")) {
+        res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate, max-age=0");
+        res.setHeader("Pragma", "no-cache");
+        res.setHeader("Expires", "0");
+      } else if (filePath.endsWith(".wasm") || filePath.endsWith(".ttf") || filePath.endsWith(".png") || filePath.endsWith(".jpg") || filePath.endsWith(".jpeg") || filePath.endsWith(".svg") || filePath.endsWith(".woff2")) {
+        res.setHeader("Cache-Control", "public, max-age=86400");
       }
     },
   }));
   app.get(["/admin", "/admin/*"], (_req, res) => {
-    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate, max-age=0");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
     res.sendFile(path.join(process.cwd(), "public", "admin-web", "index.html"));
   });
 
   app.use("/customer", express.static(path.join(process.cwd(), "public", "customer-web"), {
-    maxAge: "30d",
     setHeaders: (res, filePath) => {
-      if (filePath.endsWith("index.html")) {
-        res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-      } else if (filePath.endsWith(".js") || filePath.endsWith(".wasm") || filePath.endsWith(".ttf") || filePath.endsWith(".png") || filePath.endsWith(".json")) {
-        res.setHeader("Cache-Control", "public, max-age=2592000, immutable");
+      if (filePath.endsWith("index.html") || filePath.endsWith(".js") || filePath.endsWith(".json")) {
+        res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate, max-age=0");
+        res.setHeader("Pragma", "no-cache");
+        res.setHeader("Expires", "0");
+      } else if (filePath.endsWith(".wasm") || filePath.endsWith(".ttf") || filePath.endsWith(".png") || filePath.endsWith(".jpg") || filePath.endsWith(".jpeg") || filePath.endsWith(".svg") || filePath.endsWith(".woff2")) {
+        res.setHeader("Cache-Control", "public, max-age=86400");
       }
     },
   }));
   app.get(["/customer", "/customer/*"], (_req, res) => {
-    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate, max-age=0");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
     res.sendFile(path.join(process.cwd(), "public", "customer-web", "index.html"));
   });
 
