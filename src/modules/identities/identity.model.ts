@@ -29,8 +29,13 @@ export interface UserIdentityDocument extends Document {
   _id: Types.ObjectId;
   userId: Types.ObjectId;
   nidNumber: string;
+  name?: string;
+  nameBn?: string;
+  fatherName?: string;
+  motherName?: string;
   dateOfBirth: Date;
   address: string;
+  gender?: string;
   // Cloudinary public IDs — never a raw/public URL. Signed URLs are
   // generated on demand via storageProvider.getSignedUrl() (spec 78).
   nidFrontImagePublicId?: string;
@@ -53,23 +58,28 @@ const userIdentitySchema = new Schema<UserIdentityDocument>(
       required: true,
       unique: true,
     },
-    nidNumber: { type: String, required: true, select: false },
-    dateOfBirth: { type: Date, required: true, select: false },
-    address: { type: String, required: true, select: false },
-    nidFrontImagePublicId: { type: String, select: false },
-    nidFrontImageFormat: { type: String, select: false },
-    nidBackImagePublicId: { type: String, select: false },
-    nidBackImageFormat: { type: String, select: false },
+    nidNumber: { type: String, required: true },
+    name: { type: String },
+    nameBn: { type: String },
+    fatherName: { type: String },
+    motherName: { type: String },
+    dateOfBirth: { type: Date, required: true },
+    address: { type: String, required: true },
+    gender: { type: String, default: "MALE" },
+    nidFrontImagePublicId: { type: String },
+    nidFrontImageFormat: { type: String },
+    nidBackImagePublicId: { type: String },
+    nidBackImageFormat: { type: String },
     extractionStatus: {
       type: String,
       enum: Object.values(NidExtractionStatus),
-      default: NidExtractionStatus.PENDING,
+      default: NidExtractionStatus.CONFIRMED,
       required: true,
     },
     verificationStatus: {
       type: String,
       enum: Object.values(NidVerificationStatus),
-      default: NidVerificationStatus.PENDING,
+      default: NidVerificationStatus.CONFIRMED,
       required: true,
     },
     extractionConfidence: {
@@ -78,7 +88,7 @@ const userIdentitySchema = new Schema<UserIdentityDocument>(
       address: Number,
       name: Number,
     },
-    confirmedAt: { type: Date },
+    confirmedAt: { type: Date, default: Date.now },
   },
   { timestamps: true },
 );

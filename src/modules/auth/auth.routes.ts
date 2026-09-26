@@ -26,6 +26,16 @@ const router = Router();
 
 // ── Self registration ──────────────────────────────────
 router.post(
+  "/extract-nid",
+  registrationRateLimiter,
+  imageUpload.fields([
+    { name: "nidFrontImage", maxCount: 1 },
+    { name: "nidBackImage", maxCount: 1 },
+  ]),
+  asyncHandler(authController.extractNid),
+);
+
+router.post(
   "/register",
   registrationRateLimiter,
   imageUpload.fields([

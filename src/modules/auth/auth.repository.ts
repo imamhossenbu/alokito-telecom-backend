@@ -29,8 +29,12 @@ export const authRepository = {
     nidBackImagePublicId?: string;
     nidBackImageFormat?: string;
     nidNumber?: string;
+    nameBn?: string;
+    fatherName?: string;
+    motherName?: string;
     dateOfBirth?: Date;
     address?: string;
+    gender?: string;
   }) {
     const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 min to complete registration
     return RegistrationSessionModel.create({
@@ -45,7 +49,7 @@ export const authRepository = {
       _id: id,
       status: RegistrationSessionStatus.PENDING,
       expiresAt: { $gt: new Date() },
-    }).select("+pinHash +nidNumber +dateOfBirth +address");
+    }).select("+pinHash +nidNumber +nameBn +fatherName +motherName +dateOfBirth +address +gender");
   },
 
   async markRegistrationVerified(id: Types.ObjectId) {

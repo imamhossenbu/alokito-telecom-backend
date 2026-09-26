@@ -176,14 +176,30 @@ export const authService = {
 
     const pinHash = await hashPin(body.pin);
 
-    // Extract NID info automatically from uploaded NID images
-    let extracted = { nidNumber: "", dateOfBirth: new Date(0), address: "", name: body.name };
-    if (nidImages.front && nidImages.back) {
-      extracted = await nidExtractor.extractNid(
+    let extracted = {
+      nidNumber: body.nidNumber || "",
+      name: body.name,
+      nameBn: body.nameBn || "",
+      fatherName: body.fatherName || "",
+      motherName: body.motherName || "",
+      gender: body.gender || "MALE",
+      dateOfBirth: body.dateOfBirth ? new Date(body.dateOfBirth) : new Date(1996, 4, 12),
+      address: body.address || "",
+    };
+
+    if (nidImages.front && nidImages.back && (!body.nidNumber || !body.fatherName)) {
+      const autoExtracted = await nidExtractor.extractNid(
         nidImages.front,
         nidImages.back,
         body.name
       );
+      extracted.nidNumber = body.nidNumber || autoExtracted.nidNumber;
+      extracted.nameBn = body.nameBn || autoExtracted.nameBn;
+      extracted.fatherName = body.fatherName || autoExtracted.fatherName;
+      extracted.motherName = body.motherName || autoExtracted.motherName;
+      extracted.gender = body.gender || autoExtracted.gender;
+      extracted.dateOfBirth = body.dateOfBirth ? new Date(body.dateOfBirth) : autoExtracted.dateOfBirth;
+      extracted.address = body.address || autoExtracted.address;
     }
 
     const registrationSession = await authRepository.createRegistrationSession({
@@ -197,8 +213,12 @@ export const authService = {
       nidBackImagePublicId: nidImages.back,
       nidBackImageFormat: nidImages.backFormat,
       nidNumber: extracted.nidNumber,
+      nameBn: extracted.nameBn,
+      fatherName: extracted.fatherName,
+      motherName: extracted.motherName,
       dateOfBirth: extracted.dateOfBirth,
       address: extracted.address,
+      gender: extracted.gender,
     });
 
     const { verificationSessionId, code } = await issueOtp({
@@ -216,11 +236,30 @@ export const authService = {
       emailMasked: maskEmail(body.email),
       extractedNid: {
         nidNumber: extracted.nidNumber,
+        name: extracted.name,
+        nameBn: extracted.nameBn,
+        fatherName: extracted.fatherName,
+        motherName: extracted.motherName,
+        gender: extracted.gender,
         dateOfBirth: extracted.dateOfBirth,
         address: extracted.address,
-        name: extracted.name,
       },
     };
+  },
+
+  async extractNidFromImages(
+    nidImages: {
+      front?: string;
+      frontFormat?: string;
+      back?: string;
+      backFormat?: string;
+    },
+    fallbackName?: string,
+  ) {
+    if (!nidImages.front || !nidImages.back) {
+      throw new AppError("VALIDATION_ERROR", "Both NID front and back images are required", 400);
+    }
+    return nidExtractor.extractNid(nidImages.front, nidImages.back, fallbackName);
   },
 
   async resendRegistrationOtp(body: RegisterResendBody) {
@@ -312,9 +351,14 @@ export const authService = {
           await identityRepository.createFromRegistration(
             {
               userId: user._id,
+              name: registrationSession.name,
+              nameBn: (registrationSession as any).nameBn,
+              fatherName: (registrationSession as any).fatherName,
+              motherName: (registrationSession as any).motherName,
               nidNumber: registrationSession.nidNumber,
               dateOfBirth: registrationSession.dateOfBirth,
               address: registrationSession.address,
+              gender: (registrationSession as any).gender,
               nidFrontImagePublicId: registrationSession.nidFrontImagePublicId,
               nidFrontImageFormat: registrationSession.nidFrontImageFormat,
               nidBackImagePublicId: registrationSession.nidBackImagePublicId,

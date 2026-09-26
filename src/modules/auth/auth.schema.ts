@@ -34,6 +34,13 @@ export const registerBodySchema = z.object({
   email: emailSchema,
   phone: bdPhoneSchema,
   pin: pinSchema,
+  nidNumber: z.string().optional(),
+  nameBn: z.string().optional(),
+  fatherName: z.string().optional(),
+  motherName: z.string().optional(),
+  dateOfBirth: z.string().optional(),
+  address: z.string().optional(),
+  gender: z.string().optional(),
 });
 export type RegisterBody = z.infer<typeof registerBodySchema>;
 

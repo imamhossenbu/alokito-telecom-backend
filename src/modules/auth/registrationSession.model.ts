@@ -23,8 +23,12 @@ export interface RegistrationSessionDocument extends Document {
   nidBackImageFormat?: string;
 
   nidNumber?: string;
+  nameBn?: string;
+  fatherName?: string;
+  motherName?: string;
   dateOfBirth?: Date;
   address?: string;
+  gender?: string;
 
   verificationSessionId?: Types.ObjectId;
   status: RegistrationSessionStatusType;
@@ -51,9 +55,13 @@ const registrationSessionSchema = new Schema<RegistrationSessionDocument>(
     nidBackImagePublicId: { type: String },
     nidBackImageFormat: { type: String },
 
-    nidNumber: { type: String, select: false },
-    dateOfBirth: { type: Date, select: false },
-    address: { type: String, select: false },
+    nidNumber: { type: String },
+    nameBn: { type: String },
+    fatherName: { type: String },
+    motherName: { type: String },
+    dateOfBirth: { type: Date },
+    address: { type: String },
+    gender: { type: String, default: "MALE" },
 
     verificationSessionId: {
       type: Schema.Types.ObjectId,

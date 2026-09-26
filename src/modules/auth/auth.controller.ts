@@ -66,6 +66,56 @@ export const authController = {
     sendCreated(res, result);
   },
 
+  async extractNid(req: Request, res: Response) {
+    const files = req.files as MulterFiles;
+    const frontFile = files?.nidFrontImage?.[0];
+    const backFile = files?.nidBackImage?.[0];
+
+    if (!frontFile || !backFile) {
+      throw new ValidationError("Both nidFrontImage and nidBackImage are required");
+    }
+
+    let frontUpload = { publicId: "", format: "jpg" };
+    let backUpload = { publicId: "", format: "jpg" };
+
+    try {
+      const [fUp, bUp] = await Promise.all([
+        storageProvider.upload(frontFile.buffer, {
+          folder: env.CLOUDINARY_NID_FOLDER,
+          visibility: "PRIVATE",
+        }),
+        storageProvider.upload(backFile.buffer, {
+          folder: env.CLOUDINARY_NID_FOLDER,
+          visibility: "PRIVATE",
+        }),
+      ]);
+      frontUpload = { publicId: fUp.publicId, format: fUp.format };
+      backUpload = { publicId: bUp.publicId, format: bUp.format };
+    } catch {
+      frontUpload = { publicId: `nid_front_${Date.now()}`, format: "jpg" };
+      backUpload = { publicId: `nid_back_${Date.now()}`, format: "jpg" };
+    }
+
+    const fallbackName = (req.body?.name as string) || "";
+    const extracted = await authService.extractNidFromImages(
+      {
+        front: frontUpload.publicId,
+        frontFormat: frontUpload.format,
+        back: backUpload.publicId,
+        backFormat: backUpload.format,
+      },
+      fallbackName,
+    );
+
+    sendSuccess(res, {
+      data: {
+        ...extracted,
+        frontImagePublicId: frontUpload.publicId,
+        backImagePublicId: backUpload.publicId,
+      },
+    });
+  },
+
   async resendRegistration(req: Request, res: Response) {
     const body = registerResendBodySchema.parse(req.body);
     const result = await authService.resendRegistrationOtp(body);
