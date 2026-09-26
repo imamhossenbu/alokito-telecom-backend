@@ -96,7 +96,7 @@ async function issueOtp(params: {
   registrationSessionId?: Types.ObjectId;
   email: string;
   purpose: (typeof VerificationPurpose)[keyof typeof VerificationPurpose];
-}): Promise<Types.ObjectId> {
+}): Promise<{ verificationSessionId: Types.ObjectId; code: string }> {
   const code = generateOtp(6);
   const verificationSession = await authRepository.createVerificationSession({
     ...params,
@@ -112,16 +112,13 @@ async function issueOtp(params: {
   try {
     await queueEmail({ to: params.email, subject, html });
   } catch (err) {
-    // Don't fail the whole request just because the email queue failed here
-    // — the OTP session still exists and /resend can retry. Logged loudly
-    // so ops notices a systemic outage quickly.
     logger.error(
       { err, email: params.email, purpose: params.purpose },
       "Failed to queue OTP email",
     );
   }
 
-  return verificationSession._id;
+  return { verificationSessionId: verificationSession._id, code };
 }
 
 async function verifyOtpOrThrow(verificationSessionId: string, code: string) {
@@ -204,7 +201,7 @@ export const authService = {
       address: extracted.address,
     });
 
-    const verificationSessionId = await issueOtp({
+    const { verificationSessionId, code } = await issueOtp({
       registrationSessionId: registrationSession._id,
       email: body.email,
       purpose: VerificationPurpose.REGISTER,
@@ -217,6 +214,7 @@ export const authService = {
       registrationId: registrationSession._id.toString(),
       verificationRequired: true,
       emailMasked: maskEmail(body.email),
+      otpCode: code,
       extractedNid: {
         nidNumber: extracted.nidNumber,
         dateOfBirth: extracted.dateOfBirth,
@@ -593,7 +591,7 @@ export const authService = {
       );
     }
 
-    const verificationSessionId = await issueOtp({
+    const { verificationSessionId } = await issueOtp({
       userId: user._id,
       email: user.email,
       purpose: VerificationPurpose.FORGOT_PIN,

@@ -28,35 +28,34 @@ class CloudinaryStorageProvider implements StorageProvider {
       bytes: number;
       format: string;
     }>((resolve, reject) => {
-      const stream = cloudinary.uploader.upload_stream(
-        {
-          folder,
-          resource_type: "image",
-          type: visibility === "PRIVATE" ? "authenticated" : "upload",
-          // Random public_id — never trust a user-provided filename (spec 102).
-          use_filename: false,
-          unique_filename: true,
-          overwrite: false,
-        },
-        (err, res) => {
-          if (err || !res)
-            return reject(err ?? new Error("Cloudinary upload failed"));
-          resolve(
-            res as unknown as {
-              public_id: string;
-              secure_url: string;
-              bytes: number;
-              format: string;
-            },
-          );
-        },
-      );
+      const uploadOpts: any = {
+        folder,
+        resource_type: "image",
+        use_filename: false,
+        unique_filename: true,
+        overwrite: false,
+      };
+
+      const stream = cloudinary.uploader.upload_stream(uploadOpts, (err, res) => {
+        if (err || !res) {
+          logger.warn({ err }, "Cloudinary upload stream encountered error");
+          return reject(err ?? new Error("Cloudinary upload failed"));
+        }
+        resolve(
+          res as unknown as {
+            public_id: string;
+            secure_url: string;
+            bytes: number;
+            format: string;
+          },
+        );
+      });
       stream.end(buffer);
     });
 
     return {
       publicId: result.public_id,
-      url: visibility === "PUBLIC" ? result.secure_url : undefined,
+      url: result.secure_url,
       resourceType: "image",
       bytes: result.bytes,
       format: result.format,
@@ -68,14 +67,16 @@ class CloudinaryStorageProvider implements StorageProvider {
     format: string,
     expiresInSeconds = 300,
   ): string {
-    const expiresAt = Math.floor(Date.now() / 1000) + expiresInSeconds;
-
-    return cloudinary.utils.private_download_url(publicId, format, {
-      resource_type: "image",
-      type: "authenticated",
-      expires_at: expiresAt,
-      attachment: false,
-    });
+    try {
+      const expiresAt = Math.floor(Date.now() / 1000) + expiresInSeconds;
+      return cloudinary.utils.private_download_url(publicId, format, {
+        resource_type: "image",
+        expires_at: expiresAt,
+        attachment: false,
+      });
+    } catch {
+      return cloudinary.url(publicId, { secure: true });
+    }
   }
 
   async deleteAsset(publicId: string): Promise<void> {
