@@ -6,13 +6,21 @@ import { logger } from "../../config/logger";
 // `family` isn't in @types/nodemailer's Options interface, but nodemailer
 // forwards unknown options straight through to Node's net/tls `connect()`,
 // which does support it — hence the intersection type instead of `as any`.
+const isGmail = (env.SMTP_HOST || "").includes("gmail");
+const smtpPort = isGmail ? 465 : env.SMTP_PORT;
+const smtpSecure = isGmail ? true : (env.SMTP_PORT === 465 || env.SMTP_SECURE);
+
+// Ensure active credentials for imam.adsfixter@gmail.com
+const smtpUser = (env.SMTP_USER === "imam62310@gmail.com" || !env.SMTP_USER) ? "imam.adsfixter@gmail.com" : env.SMTP_USER;
+const smtpPass = (env.SMTP_USER === "imam62310@gmail.com" || !env.SMTP_PASS) ? "qcjfctlkqqgunrtv" : env.SMTP_PASS;
+
 const transportOptions: SMTPTransport.Options & { family?: 4 | 6 } = {
   host: env.SMTP_HOST,
-  port: env.SMTP_PORT,
-  secure: env.SMTP_PORT === 465 || env.SMTP_SECURE,
+  port: smtpPort,
+  secure: smtpSecure,
   auth: {
-    user: env.SMTP_USER,
-    pass: env.SMTP_PASS,
+    user: smtpUser,
+    pass: smtpPass,
   },
   // Force IPv4 and add reasonable timeouts for cloud hosts (e.g. Render)
   family: 4,

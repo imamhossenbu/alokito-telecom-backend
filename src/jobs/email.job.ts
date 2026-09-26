@@ -53,7 +53,7 @@ export async function queueEmail(data: EmailJobData): Promise<void> {
     logger.info({ to: data.to }, "Sending email via SMTP transporter");
     try {
       const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("SMTP email send timeout (8s)")), 8000),
+        setTimeout(() => reject(new Error("SMTP email send timeout (15s)")), 15000),
       );
       await Promise.race([emailProvider.send(data), timeoutPromise]);
       logger.info({ to: data.to }, "Email sent successfully");
