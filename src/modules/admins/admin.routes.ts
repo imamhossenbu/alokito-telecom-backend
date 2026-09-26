@@ -26,6 +26,8 @@ import { orderController } from "../orders/order.controller";
 import { adminCreateManualOrderBodySchema } from "../orders/order.schema";
 import { refundController } from "../refunds/refund.controller";
 import { createRefundBodySchema } from "../refunds/refund.schema";
+import { topUpController } from "../topups/topup.controller";
+import { systemSettingsController } from "../systemSettings/systemSettings.controller";
 
 const router = Router();
 
@@ -354,6 +356,35 @@ router.post(
   "/notifications/read-all",
   adminMiddleware,
   asyncHandler(adminController.markAllNotificationsRead),
+);
+
+// ── Top-up manual verification & approval ─────────────
+router.get(
+  "/topups/pending",
+  adminMiddleware,
+  asyncHandler(topUpController.adminGetPendingTopUps),
+);
+router.post(
+  "/topups/:id/approve",
+  adminMiddleware,
+  asyncHandler(topUpController.adminApproveTopUp),
+);
+router.post(
+  "/topups/:id/reject",
+  adminMiddleware,
+  asyncHandler(topUpController.adminRejectTopUp),
+);
+
+// ── System settings & Verification mode ───────────────
+router.get(
+  "/settings",
+  adminMiddleware,
+  asyncHandler(systemSettingsController.adminGetSettings),
+);
+router.patch(
+  "/settings",
+  adminMiddleware,
+  asyncHandler(systemSettingsController.adminUpdateSettings),
 );
 
 export default router;

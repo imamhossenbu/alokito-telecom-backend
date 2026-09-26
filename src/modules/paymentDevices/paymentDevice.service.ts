@@ -502,6 +502,23 @@ export const paymentDeviceService = {
       }
     }
 
+    if (activeMethods.length === 0) {
+      try {
+        const { systemSettingsService } = await import("../systemSettings/systemSettings.service");
+        const settings = await systemSettingsService.getSettings();
+        const fallbacks = settings.fallbackPaymentNumbers;
+        if (fallbacks?.bkash) activeMethods.push({ provider: "BKASH", paymentNumber: fallbacks.bkash, status: "AVAILABLE" });
+        if (fallbacks?.nagad) activeMethods.push({ provider: "NAGAD", paymentNumber: fallbacks.nagad, status: "AVAILABLE" });
+        if (fallbacks?.rocket) activeMethods.push({ provider: "ROCKET", paymentNumber: fallbacks.rocket, status: "AVAILABLE" });
+        if (fallbacks?.upay) activeMethods.push({ provider: "UPAY", paymentNumber: fallbacks.upay, status: "AVAILABLE" });
+      } catch (_) {
+        activeMethods.push(
+          { provider: "BKASH", paymentNumber: "01890000001", status: "AVAILABLE" },
+          { provider: "NAGAD", paymentNumber: "01890000001", status: "AVAILABLE" }
+        );
+      }
+    }
+
     return activeMethods;
   },
 };

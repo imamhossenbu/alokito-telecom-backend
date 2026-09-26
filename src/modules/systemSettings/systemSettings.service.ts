@@ -1,0 +1,71 @@
+import { SystemSettingsModel, VerificationMode, ISystemSettings } from "./systemSettings.model";
+
+export class SystemSettingsService {
+  private static instance: SystemSettingsService;
+
+  private constructor() {}
+
+  public static getInstance(): SystemSettingsService {
+    if (!SystemSettingsService.instance) {
+      SystemSettingsService.instance = new SystemSettingsService();
+    }
+    return SystemSettingsService.instance;
+  }
+
+  async getSettings(): Promise<ISystemSettings> {
+    let settings = await SystemSettingsModel.findOne();
+    if (!settings) {
+      settings = await SystemSettingsModel.create({
+        verificationMode: VerificationMode.AUTO,
+        fallbackPaymentNumbers: {
+          bkash: "01890000001",
+          nagad: "01890000001",
+          rocket: "01890000001",
+          upay: "01890000001",
+        },
+        manualVerificationNote: "ম্যানুয়াল ভেরিফিকেশন মোড সক্রিয় রয়েছে। আপনার পেমেন্ট ট্রানজ্যাকশন এডমিন রিভিউ সাপেক্ষে দ্রুত ব্যালেন্স যুক্ত হবে।",
+      });
+    }
+    return settings;
+  }
+
+  async updateSettings(data: {
+    verificationMode?: VerificationMode;
+    fallbackPaymentNumbers?: {
+      bkash?: string;
+      nagad?: string;
+      rocket?: string;
+      upay?: string;
+    };
+    manualVerificationNote?: string;
+    prayerTimesDistrict?: string;
+  }): Promise<ISystemSettings> {
+    const settings = await this.getSettings();
+
+    if (data.verificationMode) {
+      settings.verificationMode = data.verificationMode;
+    }
+    if (data.fallbackPaymentNumbers) {
+      settings.fallbackPaymentNumbers = {
+        ...settings.fallbackPaymentNumbers,
+        ...data.fallbackPaymentNumbers,
+      };
+    }
+    if (data.manualVerificationNote !== undefined) {
+      settings.manualVerificationNote = data.manualVerificationNote;
+    }
+    if (data.prayerTimesDistrict !== undefined) {
+      settings.prayerTimesDistrict = data.prayerTimesDistrict;
+    }
+
+    await settings.save();
+    return settings;
+  }
+
+  async isManualVerification(): Promise<boolean> {
+    const settings = await this.getSettings();
+    return settings.verificationMode === VerificationMode.MANUAL;
+  }
+}
+
+export const systemSettingsService = SystemSettingsService.getInstance();

@@ -39,4 +39,38 @@ export const topUpController = {
     const topUp = await topUpService.getTopUpById(userId, req.params.id);
     sendSuccess(res, { data: topUp });
   },
+
+  async adminGetPendingTopUps(req: Request, res: Response) {
+    if (!req.actor || req.actor.type !== "ADMIN") {
+      throw new UnauthorizedError();
+    }
+    const page = req.query.page ? parseInt(req.query.page as string, 10) : 1;
+    const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 50;
+    const result = await topUpService.adminGetPendingTopUps(page, limit);
+    sendSuccess(res, { data: result });
+  },
+
+  async adminApproveTopUp(req: Request, res: Response) {
+    if (!req.actor || req.actor.type !== "ADMIN") {
+      throw new UnauthorizedError();
+    }
+    const result = await topUpService.adminApproveTopUp(
+      req.actor.adminId,
+      req.params.id,
+      req.body?.adminNote
+    );
+    sendSuccess(res, { data: result });
+  },
+
+  async adminRejectTopUp(req: Request, res: Response) {
+    if (!req.actor || req.actor.type !== "ADMIN") {
+      throw new UnauthorizedError();
+    }
+    const result = await topUpService.adminRejectTopUp(
+      req.actor.adminId,
+      req.params.id,
+      req.body?.reason || "Rejected by admin"
+    );
+    sendSuccess(res, { data: result });
+  },
 };

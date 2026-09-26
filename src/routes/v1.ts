@@ -31,6 +31,9 @@ import orderRoutes from "../modules/orders/order.routes";
 import refundRoutes from "../modules/refunds/refund.routes";
 import notificationRoutes from "../modules/notifications/notification.routes";
 
+import settingsRoutes from "../modules/systemSettings/systemSettings.routes";
+import prayerTimesRoutes from "../modules/prayerTimes/prayerTimes.routes";
+
 router.use("/operators", operatorRoutes);
 router.use("/offers", offerRoutes);
 router.use("/drive-offers", driveOfferRoutes);
@@ -41,5 +44,7 @@ router.use("/payment-methods", paymentMethodsRoutes);
 router.use("/orders", orderRoutes);
 router.use("/refunds", refundRoutes);
 router.use("/notifications", notificationRoutes);
+router.use("/settings", settingsRoutes);
+router.use("/prayer-times", prayerTimesRoutes);
 
 export default router;

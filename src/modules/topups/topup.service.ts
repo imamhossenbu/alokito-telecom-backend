@@ -25,12 +25,16 @@ export const topUpService = {
       lastSeenAt: { $gt: new Date(threshold) },
     });
 
-    if (!device) {
-      throw new AppError(
-        "PAYMENT_DEVICE_OFFLINE",
-        "Payment provider is currently offline or unavailable. Please choose another method.",
-        400
-      );
+    let paymentNumber = device?.phoneNumber;
+    if (!paymentNumber) {
+      try {
+        const { systemSettingsService } = await import("../systemSettings/systemSettings.service");
+        const settings = await systemSettingsService.getSettings();
+        const fallbacks: any = settings.fallbackPaymentNumbers;
+        paymentNumber = fallbacks?.[provider.toLowerCase()] || "01890000001";
+      } catch (_) {
+        paymentNumber = "01890000001";
+      }
     }
 
     const amount = bdtToPoisha(amountBdt);
@@ -38,7 +42,7 @@ export const topUpService = {
     const topUp = await topUpRepository.create({
       userId: new Types.ObjectId(userId),
       paymentProvider: provider.toUpperCase(),
-      paymentNumber: device.phoneNumber,
+      paymentNumber,
       amount,
       status: TopUpStatus.PENDING,
       verificationStatus: "PENDING",
@@ -88,6 +92,24 @@ export const topUpService = {
       throw new ConflictError("PAYMENT_TRANSACTION_ALREADY_USED", "This transaction ID has already been used");
     }
 
+    // Check if system is in manual verification mode
+    try {
+      const { systemSettingsService } = await import("../systemSettings/systemSettings.service");
+      const isManual = await systemSettingsService.isManualVerification();
+      if (isManual) {
+        topUp.status = TopUpStatus.VERIFYING;
+        topUp.customerTransactionId = cleanTxId;
+        await topUp.save();
+
+        return {
+          success: true,
+          manualReview: true,
+          status: "VERIFYING",
+          message: "আপনার ট্রানজ্যাকশন আইডি সফলভাবে জমা হয়েছে। এডমিন রিভিউ শেষে দ্রুত ব্যালেন্স যুক্ত হবে।",
+        };
+      }
+    } catch (_) {}
+
     // Define acceptable receipt time window tolerances
     const toleranceMs = env.PAYMENT_VERIFICATION_TOLERANCE_MINUTES * 60 * 1000;
     const windowMs = env.PAYMENT_VERIFICATION_WINDOW_MINUTES * 60 * 1000;
@@ -106,6 +128,7 @@ export const topUpService = {
     if (!matchEvent) {
       // Mark top-up status as VERIFYING (customer submitted but matching SMS hasn't arrived/matched yet)
       topUp.status = TopUpStatus.VERIFYING;
+      topUp.customerTransactionId = cleanTxId;
       await topUp.save();
 
       throw new NotFoundError(
@@ -222,5 +245,130 @@ export const topUpService = {
       throw new AppError("UNAUTHORIZED", "You do not own this topup", 401);
     }
     return topUp;
+  },
+
+  // ── Admin Top-Up Manual Approval Methods ──
+  async adminGetPendingTopUps(page = 1, limit = 50) {
+    const skip = (page - 1) * limit;
+    const filter = { status: { $in: [TopUpStatus.VERIFYING, TopUpStatus.PENDING] } };
+    const [docs, total] = await Promise.all([
+      TopUpModel.find(filter)
+        .populate("userId", "name phone email")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      TopUpModel.countDocuments(filter),
+    ]);
+    return { docs, total, page, limit };
+  },
+
+  async adminApproveTopUp(adminId: string, topUpId: string, adminNote?: string) {
+    const topUp = await TopUpModel.findById(topUpId);
+    if (!topUp) {
+      throw new NotFoundError("TOPUP_NOT_FOUND", "Top-up request not found");
+    }
+    if (topUp.status === TopUpStatus.VERIFIED) {
+      throw new AppError("TOPUP_ALREADY_VERIFIED", "This top-up has already been verified", 400);
+    }
+
+    const mongoSession = await mongoose.startSession();
+    try {
+      let finalBalance = 0;
+      await mongoSession.withTransaction(async () => {
+        const wallet = await walletRepository.findByUserId(topUp.userId.toString(), mongoSession);
+        if (!wallet) {
+          throw new NotFoundError("WALLET_NOT_FOUND", "Customer wallet not found");
+        }
+
+        const balanceBefore = wallet.balance;
+        const balanceAfter = balanceBefore + topUp.amount;
+
+        const credited = await walletRepository.creditBalance(topUp.userId, topUp.amount, mongoSession);
+        if (!credited) {
+          throw new AppError("INTERNAL_ERROR", "Failed to credit balance", 500);
+        }
+
+        const wTx = await walletTransactionRepository.create(
+          {
+            userId: topUp.userId,
+            walletId: wallet._id,
+            type: "TOP_UP",
+            direction: "CREDIT",
+            amount: topUp.amount,
+            balanceBefore,
+            balanceAfter,
+            referenceType: "TOP_UP",
+            referenceId: topUp._id,
+            description: `Manual Top-Up approved by Admin (${adminNote || "Verified"})`,
+          },
+          mongoSession
+        );
+
+        topUp.status = TopUpStatus.VERIFIED;
+        topUp.verificationStatus = "VERIFIED";
+        topUp.walletTransactionId = wTx._id;
+        topUp.verifiedAt = new Date();
+        await topUp.save({ session: mongoSession });
+
+        finalBalance = balanceAfter;
+      });
+
+      await auditLogService.log({
+        actorType: ActorType.ADMIN,
+        actorId: adminId,
+        action: "TOPUP_MANUAL_APPROVED",
+        entityType: "TopUp",
+        entityId: topUp._id,
+        metadata: { amount: topUp.amount, adminNote },
+      });
+
+      await notificationService.send({
+        userId: topUp.userId,
+        type: "TOPUP_VERIFIED",
+        title: "Top-up Approved",
+        message: `আপনার ৳${poishaToBdt(topUp.amount).toFixed(2)} টাকা ব্যালেন্স রিচার্জ অ্যাডমিন দ্বারা অনুমোদিত হয়েছে।`,
+        referenceType: "TopUp",
+        referenceId: topUp._id,
+      });
+
+      return {
+        success: true,
+        walletBalance: poishaToBdt(finalBalance),
+        topUp,
+      };
+    } finally {
+      await mongoSession.endSession();
+    }
+  },
+
+  async adminRejectTopUp(adminId: string, topUpId: string, reason: string) {
+    const topUp = await TopUpModel.findById(topUpId);
+    if (!topUp) {
+      throw new NotFoundError("TOPUP_NOT_FOUND", "Top-up request not found");
+    }
+
+    topUp.status = TopUpStatus.FAILED;
+    topUp.verificationStatus = "FAILED";
+    await topUp.save();
+
+    await auditLogService.log({
+      actorType: ActorType.ADMIN,
+      actorId: adminId,
+      action: "TOPUP_MANUAL_REJECTED",
+      entityType: "TopUp",
+      entityId: topUp._id,
+      metadata: { reason },
+    });
+
+    await notificationService.send({
+      userId: topUp.userId,
+      type: "TOPUP_FAILED",
+      title: "Top-up Rejected",
+      message: `আপনার ৳${poishaToBdt(topUp.amount).toFixed(2)} টাকা রিচার্জ বাতিল করা হয়েছে। কারণ: ${reason}`,
+      referenceType: "TopUp",
+      referenceId: topUp._id,
+    });
+
+    return { success: true, topUp };
   },
 };
