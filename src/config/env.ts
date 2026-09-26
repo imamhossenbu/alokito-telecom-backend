@@ -31,6 +31,10 @@ const envSchema = z.object({
   SMTP_PASS: z.string().default("qcjfctlkqqgunrtv"),
   EMAIL_FROM: z.string().default("Alokito Telecom <imam.adsfixter@gmail.com>"),
 
+  // HTTP Email APIs (Port 443 — bypasses Render Free Tier SMTP port blocking)
+  RESEND_API_KEY: z.string().optional().default(""),
+  BREVO_API_KEY: z.string().optional().default(""),
+
   STORAGE_PROVIDER: z.literal("cloudinary").default("cloudinary"),
   CLOUDINARY_CLOUD_NAME: z.string().min(1, "CLOUDINARY_CLOUD_NAME is required"),
   CLOUDINARY_API_KEY: z.string().min(1, "CLOUDINARY_API_KEY is required"),

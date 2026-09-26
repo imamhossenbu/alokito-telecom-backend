@@ -7,6 +7,63 @@ class NodemailerEmailProvider implements EmailProvider {
   async send(options: SendEmailOptions): Promise<void> {
     const { to, subject, html, text } = options;
 
+    // 1. If Resend API Key is set, send via HTTPS on Port 443 (Allowed on Render Free tier)
+    if (env.RESEND_API_KEY) {
+      try {
+        const res = await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${env.RESEND_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            from: env.EMAIL_FROM || "Alokito Telecom <onboarding@resend.dev>",
+            to: [to],
+            subject,
+            html,
+          }),
+        });
+        if (!res.ok) {
+          const errText = await res.text();
+          throw new Error(`Resend HTTP error ${res.status}: ${errText}`);
+        }
+        logger.info({ to, subject }, "Email sent successfully via Resend HTTP API");
+        return;
+      } catch (err) {
+        logger.error({ err, to, subject }, "Failed to send email via Resend HTTP API");
+        throw err;
+      }
+    }
+
+    // 2. If Brevo API Key is set, send via HTTPS on Port 443 (Allowed on Render Free tier)
+    if (env.BREVO_API_KEY) {
+      try {
+        const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+          method: "POST",
+          headers: {
+            "api-key": env.BREVO_API_KEY,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            sender: { name: "Alokito Telecom", email: env.SMTP_USER || "imam.adsfixter@gmail.com" },
+            to: [{ email: to }],
+            subject,
+            htmlContent: html,
+          }),
+        });
+        if (!res.ok) {
+          const errText = await res.text();
+          throw new Error(`Brevo HTTP error ${res.status}: ${errText}`);
+        }
+        logger.info({ to, subject }, "Email sent successfully via Brevo HTTP API");
+        return;
+      } catch (err) {
+        logger.error({ err, to, subject }, "Failed to send email via Brevo HTTP API");
+        throw err;
+      }
+    }
+
+    // 3. Fall back to standard SMTP (Works on local machine or Render paid tier)
     try {
       await transporter.sendMail({
         from: env.EMAIL_FROM,
@@ -16,11 +73,7 @@ class NodemailerEmailProvider implements EmailProvider {
         text: text ?? stripHtml(html),
       });
     } catch (err) {
-      // Email sending must never take down the request that triggered it
-      // (registration, temporary-PIN issuance, etc). Log loudly instead —
-      // in Phase 2+ this call should be moved into a BullMQ job with
-      // retries so transient SMTP failures don't silently drop OTPs.
-      logger.error({ err, to, subject }, "Failed to send email");
+      logger.error({ err, to, subject }, "Failed to send email via SMTP");
       throw err;
     }
   }

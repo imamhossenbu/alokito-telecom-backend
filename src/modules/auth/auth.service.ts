@@ -98,6 +98,12 @@ async function issueOtp(params: {
   purpose: (typeof VerificationPurpose)[keyof typeof VerificationPurpose];
 }): Promise<{ verificationSessionId: Types.ObjectId; code: string }> {
   const code = generateOtp(6);
+  logger.info(
+    { email: params.email, purpose: params.purpose, code },
+    "🔑 [OTP GENERATED] Verification Code: %s for %s",
+    code,
+    params.email,
+  );
   const verificationSession = await authRepository.createVerificationSession({
     ...params,
     codeHash: hashOtp(code),
