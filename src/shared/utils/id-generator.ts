@@ -1,7 +1,16 @@
-import { customAlphabet } from "nanoid";
+import crypto from "crypto";
 
 // Unambiguous alphabet (no 0/O, 1/I/L) for human-readable reference IDs.
-const nanoid = customAlphabet("23456789ABCDEFGHJKLMNPQRSTUVWXYZ", 8);
+const ALPHABET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
+
+function generateCode(length: number = 8): string {
+  const bytes = crypto.randomBytes(length);
+  let result = "";
+  for (let i = 0; i < length; i++) {
+    result += ALPHABET[bytes[i] % ALPHABET.length];
+  }
+  return result;
+}
 
 export const IdPrefix = {
   USER: "USR",
@@ -16,5 +25,5 @@ export const IdPrefix = {
 export function generateReferenceId(
   prefix: (typeof IdPrefix)[keyof typeof IdPrefix],
 ): string {
-  return `${prefix}-${nanoid()}`;
+  return `${prefix}-${generateCode(8)}`;
 }
