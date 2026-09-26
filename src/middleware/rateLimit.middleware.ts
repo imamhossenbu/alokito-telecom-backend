@@ -22,9 +22,10 @@ export function createRateLimiter(options: {
 
   return rateLimit({
     windowMs,
-    max,
+    max: env.isDevelopment || env.isTest ? 1000 : max,
     standardHeaders: true,
     legacyHeaders: false,
+    skip: () => env.isDevelopment || env.isTest,
     keyGenerator: (req: Request) => {
       const extra = keyExtra ? keyExtra(req) : "";
       return `rl:${req.ip}:${extra}`;

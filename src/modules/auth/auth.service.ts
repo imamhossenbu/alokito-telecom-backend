@@ -334,7 +334,27 @@ export const authService = {
       if (!user)
         throw new AppError("INTERNAL_ERROR", "Registration failed", 500);
 
-      return { userId: (user as { _id: Types.ObjectId })._id.toString() };
+      const tokens = await issueTokensForUser((user as any)._id, {
+        deviceId: "primary-device",
+        deviceType: "ANDROID",
+      });
+      await authRepository.upsertTrustedDevice({
+        userId: (user as any)._id,
+        deviceId: "primary-device",
+      });
+
+      return {
+        userId: (user as { _id: Types.ObjectId })._id.toString(),
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+        user: {
+          id: (user as { _id: Types.ObjectId })._id.toString(),
+          name: registrationSession.name,
+          email: registrationSession.email,
+          phone: registrationSession.phone,
+          kycStatus: "VERIFIED",
+        },
+      };
     } finally {
       await mongoSession.endSession();
     }
@@ -439,41 +459,35 @@ export const authService = {
       return { role: "user", mustChangePin: true, changeToken };
     }
 
-    const trustedDevice = await authRepository.findTrustedDevice(
-      user._id,
-      body.deviceId,
-    );
-
-    if (trustedDevice) {
-      await authRepository.upsertTrustedDevice({
-        userId: user._id,
-        deviceId: body.deviceId,
-        deviceName: body.deviceName,
-        platform: body.platform,
-        appVersion: body.appVersion,
-      });
-      await userRepository.updateLastLogin(user._id);
-
-      const tokens = await issueTokensForUser(user._id, {
-        deviceId: body.deviceId,
-        deviceType: body.platform,
-        ...context,
-      });
-
-      return { role: "user", requiresVerification: false, ...tokens };
-    }
-
-    // Unknown device — require email verification before issuing tokens.
-    const verificationSessionId = await issueOtp({
+    // Auto trust device and issue tokens
+    const deviceId = body.deviceId || "primary-device";
+    await authRepository.upsertTrustedDevice({
       userId: user._id,
-      email: user.email,
-      purpose: VerificationPurpose.LOGIN_NEW_DEVICE,
+      deviceId,
+      deviceName: body.deviceName,
+      platform: body.platform,
+      appVersion: body.appVersion,
+    });
+    await userRepository.updateLastLogin(user._id);
+
+    const tokens = await issueTokensForUser(user._id, {
+      deviceId,
+      deviceType: body.platform,
+      ...context,
     });
 
     return {
       role: "user",
-      requiresVerification: true,
-      verificationId: verificationSessionId.toString(),
+      requiresVerification: false,
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+      user: {
+        id: user._id.toString(),
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        kycStatus: "VERIFIED",
+      },
     };
   },
 
