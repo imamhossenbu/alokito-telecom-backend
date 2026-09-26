@@ -85,6 +85,21 @@ export function createApp(): Application {
     res.sendFile(path.join(process.cwd(), "public", "admin-web", "index.html"));
   });
 
+  app.use("/customer", express.static(path.join(process.cwd(), "public", "customer-web"), {
+    maxAge: "30d",
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith("index.html")) {
+        res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+      } else if (filePath.endsWith(".js") || filePath.endsWith(".wasm") || filePath.endsWith(".ttf") || filePath.endsWith(".png") || filePath.endsWith(".json")) {
+        res.setHeader("Cache-Control", "public, max-age=2592000, immutable");
+      }
+    },
+  }));
+  app.get(["/customer", "/customer/*"], (_req, res) => {
+    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+    res.sendFile(path.join(process.cwd(), "public", "customer-web", "index.html"));
+  });
+
   // --- APK Download Endpoints (Immediate auto-download on click) ---
   app.get("/download/:file", (req, res) => {
     const raw = (req.params.file || "").toLowerCase();
@@ -97,6 +112,10 @@ export function createApp(): Application {
       target = "driver-sms-listener.apk";
     } else if (raw === "listener-v7a" || raw === "listener-v7a.apk" || raw === "driver-sms-listener-v7a.apk" || raw === "drive-offer-listener-v7a.apk") {
       target = "driver-sms-listener-v7a.apk";
+    } else if (raw === "customer" || raw === "customer.apk" || raw === "drive-offer-customer" || raw === "drive-offer-customer.apk" || raw === "alokito-customer" || raw === "alokito-customer.apk") {
+      target = "drive-offer-customer.apk";
+    } else if (raw === "customer-v7a" || raw === "customer-v7a.apk" || raw === "drive-offer-customer-v7a.apk") {
+      target = "drive-offer-customer-v7a.apk";
     }
 
     const filePath = path.join(process.cwd(), "public", "downloads", target);
@@ -327,6 +346,37 @@ export function createApp(): Application {
     </div>
 
     <div class="apps-grid">
+      <!-- Alokito Telecom Customer App Card -->
+      <div class="app-card" style="border-color: rgba(34, 197, 94, 0.5); background: linear-gradient(180deg, rgba(21, 128, 61, 0.15) 0%, rgba(255, 255, 255, 0.05) 100%);">
+        <div class="card-top">
+          <div class="app-icon">
+            <img src="/public/logo.png" alt="Customer App" />
+          </div>
+          <div class="app-info">
+            <h2>Alokito Telecom - Customer App (গ্রাহক অ্যাপ)</h2>
+            <div class="badges">
+              <span class="badge green">New & Verified</span>
+              <span class="badge">v1.0.0</span>
+              <span class="badge">Android & Web</span>
+            </div>
+          </div>
+        </div>
+        <div class="description">
+          গ্রাহকদের জন্য ড্রাইভ ও রেগুলার অফার কেনা, ইনস্ট্যান্ট বিকাশ/নগদ ব্যালেন্স রিচার্জ, NID কার্ড KYC ভেরিফিকেশন, ৪-ডিজিট সিকিউর পিন এবং বিস্তারিত লেজার স্টেটমেন্ট।
+        </div>
+        <div class="btn-group">
+          <a href="/download/customer" class="btn-download" download>
+            ⬇️ Download Customer APK (Main)
+          </a>
+          <a href="/customer" class="btn-web" target="_blank">
+            🌐 Open Customer Web
+          </a>
+          <a href="/download/customer-v7a" class="btn-secondary" download title="Compact build for older phones">
+            v7a Build
+          </a>
+        </div>
+      </div>
+
       <!-- Alokito Telecom Admin App Card -->
       <div class="app-card">
         <div class="card-top">
