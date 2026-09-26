@@ -9,7 +9,7 @@ import { logger } from "../../config/logger";
 const transportOptions: SMTPTransport.Options & { family?: 4 | 6 } = {
   host: env.SMTP_HOST,
   port: env.SMTP_PORT,
-  secure: false, // true only for port 465; STARTTLS is used on 587
+  secure: env.SMTP_PORT === 465,
   auth: {
     user: env.SMTP_USER,
     pass: env.SMTP_PASS,

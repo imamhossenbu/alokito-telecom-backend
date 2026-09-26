@@ -50,15 +50,16 @@ export async function queueEmail(data: EmailJobData): Promise<void> {
     logger.info({ to: data.to, subject: data.subject }, "Enqueuing email job in BullMQ");
     await emailQueue.add("sendEmail", data);
   } else {
-    logger.info({ to: data.to }, "Sending email asynchronously in background process");
-    // Non-blocking background execution so HTTP responses return instantly (< 50ms)
-    setImmediate(async () => {
-      try {
-        await emailProvider.send(data);
-      } catch (err) {
-        logger.error({ err, to: data.to }, "Background email dispatch failed");
-      }
-    });
+    logger.info({ to: data.to }, "Sending email via SMTP transporter");
+    try {
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("SMTP email send timeout (8s)")), 8000),
+      );
+      await Promise.race([emailProvider.send(data), timeoutPromise]);
+      logger.info({ to: data.to }, "Email sent successfully");
+    } catch (err) {
+      logger.error({ err, to: data.to }, "Direct email dispatch failed");
+    }
   }
 }
 
