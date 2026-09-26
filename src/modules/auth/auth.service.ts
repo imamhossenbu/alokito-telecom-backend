@@ -214,7 +214,6 @@ export const authService = {
       registrationId: registrationSession._id.toString(),
       verificationRequired: true,
       emailMasked: maskEmail(body.email),
-      otpCode: code,
       extractedNid: {
         nidNumber: extracted.nidNumber,
         dateOfBirth: extracted.dateOfBirth,
