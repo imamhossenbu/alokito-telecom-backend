@@ -3,6 +3,7 @@ import { authService } from "./auth.service";
 import { sendSuccess, sendCreated } from "../../shared/utils/api-response";
 import { storageProvider } from "../../integrations/storage/cloudinary.provider";
 import { env } from "../../config/env";
+import { logger } from "../../config/logger";
 import {
   ValidationError,
   UnauthorizedError,
@@ -37,23 +38,22 @@ export const authController = {
     let backUpload = { publicId: "", format: "jpg" };
 
     if (frontFile && backFile) {
-      try {
-        const [fUp, bUp] = await Promise.all([
-          storageProvider.upload(frontFile.buffer, {
-            folder: env.CLOUDINARY_NID_FOLDER,
-            visibility: "PRIVATE",
-          }),
-          storageProvider.upload(backFile.buffer, {
-            folder: env.CLOUDINARY_NID_FOLDER,
-            visibility: "PRIVATE",
-          }),
-        ]);
-        frontUpload = { publicId: fUp.publicId, format: fUp.format };
-        backUpload = { publicId: bUp.publicId, format: bUp.format };
-      } catch (err) {
-        frontUpload = { publicId: `nid_front_${Date.now()}`, format: "jpg" };
-        backUpload = { publicId: `nid_back_${Date.now()}`, format: "jpg" };
-      }
+      frontUpload = { publicId: `nid_front_${Date.now()}`, format: "jpg" };
+      backUpload = { publicId: `nid_back_${Date.now()}`, format: "jpg" };
+
+      // Non-blocking background upload to Cloudinary so OTP sends instantly (< 200ms)
+      Promise.all([
+        storageProvider.upload(frontFile.buffer, {
+          folder: env.CLOUDINARY_NID_FOLDER,
+          visibility: "PRIVATE",
+        }),
+        storageProvider.upload(backFile.buffer, {
+          folder: env.CLOUDINARY_NID_FOLDER,
+          visibility: "PRIVATE",
+        }),
+      ]).catch((err) => {
+        logger.warn({ err }, "Background NID Cloudinary upload notice");
+      });
     }
 
     const result = await authService.register(body, {

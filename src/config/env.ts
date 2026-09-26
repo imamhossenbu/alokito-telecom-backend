@@ -29,7 +29,7 @@ const envSchema = z.object({
   SMTP_SECURE: z.coerce.boolean().default(false),
   SMTP_USER: z.string().min(1, "SMTP_USER is required"),
   SMTP_PASS: z.string().min(1, "SMTP_PASS is required"),
-  EMAIL_FROM: z.string().default("Drive Offer <no-reply@driveoffer.app>"),
+  EMAIL_FROM: z.string().default("Alokito Telecom <no-reply@alokitotelecom.app>"),
 
   STORAGE_PROVIDER: z.literal("cloudinary").default("cloudinary"),
   CLOUDINARY_CLOUD_NAME: z.string().min(1, "CLOUDINARY_CLOUD_NAME is required"),

@@ -176,7 +176,7 @@ export const authService = {
 
     const pinHash = await hashPin(body.pin);
 
-    let extracted = {
+    const extracted = {
       nidNumber: body.nidNumber || "",
       name: body.name,
       nameBn: body.nameBn || "",
@@ -186,21 +186,6 @@ export const authService = {
       dateOfBirth: body.dateOfBirth ? new Date(body.dateOfBirth) : new Date(1996, 4, 12),
       address: body.address || "",
     };
-
-    if (nidImages.front && nidImages.back && (!body.nidNumber || !body.fatherName)) {
-      const autoExtracted = await nidExtractor.extractNid(
-        nidImages.front,
-        nidImages.back,
-        body.name
-      );
-      extracted.nidNumber = body.nidNumber || autoExtracted.nidNumber;
-      extracted.nameBn = body.nameBn || autoExtracted.nameBn;
-      extracted.fatherName = body.fatherName || autoExtracted.fatherName;
-      extracted.motherName = body.motherName || autoExtracted.motherName;
-      extracted.gender = body.gender || autoExtracted.gender;
-      extracted.dateOfBirth = body.dateOfBirth ? new Date(body.dateOfBirth) : autoExtracted.dateOfBirth;
-      extracted.address = body.address || autoExtracted.address;
-    }
 
     const registrationSession = await authRepository.createRegistrationSession({
       name: body.name,
