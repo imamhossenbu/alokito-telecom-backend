@@ -50,12 +50,15 @@ export async function queueEmail(data: EmailJobData): Promise<void> {
     logger.info({ to: data.to, subject: data.subject }, "Enqueuing email job in BullMQ");
     await emailQueue.add("sendEmail", data);
   } else {
-    logger.warn({ to: data.to }, "Redis not configured. Sending email synchronously as fallback");
-    try {
-      await emailProvider.send(data);
-    } catch (err) {
-      logger.error({ err, to: data.to }, "Synchronous email fallback send failed");
-    }
+    logger.info({ to: data.to }, "Sending email asynchronously in background process");
+    // Non-blocking background execution so HTTP responses return instantly (< 50ms)
+    setImmediate(async () => {
+      try {
+        await emailProvider.send(data);
+      } catch (err) {
+        logger.error({ err, to: data.to }, "Background email dispatch failed");
+      }
+    });
   }
 }
 

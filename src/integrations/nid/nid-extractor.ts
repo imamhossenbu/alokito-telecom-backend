@@ -114,14 +114,14 @@ export const nidExtractor = {
 
     // --- 5. Extract Father's Name ---
     let fatherName = "";
-    const fatherMatch = frontText.match(/(?:পিতা|Father\s*Name)\s*[:.\s]*([^\n\r]+)/i);
+    const fatherMatch = frontText.match(/(?:পিতা|পিাত|পিতার\s*নাম|Father's\s*Name|Father\s*Name|Father)\s*[:.\s]*([^\n\r]+)/i);
     if (fatherMatch) {
       fatherName = cleanText(fatherMatch[1]);
     }
 
     // --- 6. Extract Mother's Name ---
     let motherName = "";
-    const motherMatch = frontText.match(/(?:মাতা|Mother\s*Name)\s*[:.\s]*([^\n\r]+)/i);
+    const motherMatch = frontText.match(/(?:মাতা|মাতার\s*নাম|Mother's\s*Name|Mother\s*Name|Mother)\s*[:.\s]*([^\n\r]+)/i);
     if (motherMatch) {
       motherName = cleanText(motherMatch[1]);
     }

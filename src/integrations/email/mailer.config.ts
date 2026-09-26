@@ -14,10 +14,11 @@ const transportOptions: SMTPTransport.Options & { family?: 4 | 6 } = {
     user: env.SMTP_USER,
     pass: env.SMTP_PASS,
   },
-  // Force IPv4: some Windows/ISP setups resolve smtp.gmail.com to an
-  // IPv6 address that's unreachable (ENETUNREACH) even though IPv4
-  // connectivity works fine. This avoids that entirely.
+  // Force IPv4 and add strict timeouts to prevent hanging sockets
   family: 4,
+  connectionTimeout: 5000,
+  greetingTimeout: 5000,
+  socketTimeout: 5000,
 };
 
 export const transporter = nodemailer.createTransport(transportOptions);
