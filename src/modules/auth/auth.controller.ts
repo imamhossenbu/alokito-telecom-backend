@@ -105,6 +105,7 @@ export const authController = {
         backFormat: backUpload.format,
       },
       fallbackName,
+      { front: frontFile.buffer, back: backFile.buffer },
     );
 
     sendSuccess(res, {

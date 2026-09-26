@@ -255,11 +255,12 @@ export const authService = {
       backFormat?: string;
     },
     fallbackName?: string,
+    buffers?: { front?: Buffer; back?: Buffer },
   ) {
     if (!nidImages.front || !nidImages.back) {
       throw new AppError("VALIDATION_ERROR", "Both NID front and back images are required", 400);
     }
-    return nidExtractor.extractNid(nidImages.front, nidImages.back, fallbackName);
+    return nidExtractor.extractNid(nidImages.front, nidImages.back, fallbackName, buffers);
   },
 
   async resendRegistrationOtp(body: RegisterResendBody) {
