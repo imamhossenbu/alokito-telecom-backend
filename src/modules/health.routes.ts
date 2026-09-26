@@ -3,6 +3,17 @@ import { isDatabaseConnected } from "../config/database";
 
 const router = Router();
 
+router.get("/", (_req, res) => {
+  res.status(200).json({
+    status: "ok",
+    service: "Alokito Telecom Backend API",
+    downloads: "/downloads",
+    docs: "/api/docs",
+    health: "/health",
+    timestamp: new Date().toISOString(),
+  });
+});
+
 router.get("/health", (_req, res) => {
   res.status(200).json({
     status: "ok",

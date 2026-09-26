@@ -14,11 +14,11 @@ const transportOptions: SMTPTransport.Options & { family?: 4 | 6 } = {
     user: env.SMTP_USER,
     pass: env.SMTP_PASS,
   },
-  // Force IPv4 and add strict timeouts to prevent hanging sockets
+  // Force IPv4 and add reasonable timeouts for cloud hosts (e.g. Render)
   family: 4,
-  connectionTimeout: 5000,
-  greetingTimeout: 5000,
-  socketTimeout: 5000,
+  connectionTimeout: 15000,
+  greetingTimeout: 15000,
+  socketTimeout: 15000,
 };
 
 export const transporter = nodemailer.createTransport(transportOptions);

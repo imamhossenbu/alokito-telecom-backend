@@ -74,8 +74,6 @@ const orderSchema = new Schema<OrderDocument>(
   { timestamps: true }
 );
 
-orderSchema.index({ orderNumber: 1 }, { unique: true });
-orderSchema.index({ transactionId: 1 }, { unique: true });
 orderSchema.index({ userId: 1, createdAt: -1 });
 orderSchema.index({ orderStatus: 1, createdAt: -1 });
 orderSchema.index({ operatorId: 1, createdAt: -1 });

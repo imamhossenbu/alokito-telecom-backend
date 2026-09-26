@@ -48,6 +48,5 @@ const refundSchema = new Schema<RefundDocument>(
 );
 
 refundSchema.index({ userId: 1, createdAt: -1 });
-refundSchema.index({ orderId: 1 }, { unique: true });
 
 export const RefundModel = model<RefundDocument>("Refund", refundSchema);
