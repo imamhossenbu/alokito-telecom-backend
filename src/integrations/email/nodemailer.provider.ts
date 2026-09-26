@@ -10,6 +10,10 @@ class NodemailerEmailProvider implements EmailProvider {
     // 1. If Resend API Key is set, send via HTTPS on Port 443 (Allowed on Render Free tier)
     if (env.RESEND_API_KEY) {
       try {
+        const resendFrom = (env.EMAIL_FROM && !env.EMAIL_FROM.includes("gmail.com") && env.EMAIL_FROM.includes("@"))
+          ? env.EMAIL_FROM
+          : "Alokito Telecom <onboarding@resend.dev>";
+
         const res = await fetch("https://api.resend.com/emails", {
           method: "POST",
           headers: {
@@ -17,7 +21,7 @@ class NodemailerEmailProvider implements EmailProvider {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            from: env.EMAIL_FROM || "Alokito Telecom <onboarding@resend.dev>",
+            from: resendFrom,
             to: [to],
             subject,
             html,
