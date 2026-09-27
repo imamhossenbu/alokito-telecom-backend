@@ -33,9 +33,8 @@ class NodemailerEmailProvider implements EmailProvider {
         }
         logger.info({ to, subject }, "Email sent successfully via Resend HTTP API");
         return;
-      } catch (err) {
-        logger.error({ err, to, subject }, "Failed to send email via Resend HTTP API");
-        throw err;
+      } catch (err: any) {
+        logger.warn({ err: err?.message || err, to, subject }, "Resend HTTP API failed, continuing with fallback provider...");
       }
     }
 
@@ -67,7 +66,27 @@ class NodemailerEmailProvider implements EmailProvider {
       }
     }
 
-    // 3. Fall back to standard SMTP (Works on local machine or Render paid tier)
+    // 3. If GMAIL_SCRIPT_URL is set, send via Google Apps Script (Free Gmail HTTP Relay on Port 443)
+    if (env.GMAIL_SCRIPT_URL) {
+      try {
+        const res = await fetch(env.GMAIL_SCRIPT_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ to, subject, html }),
+        });
+        if (!res.ok) {
+          const errText = await res.text();
+          throw new Error(`Google Script HTTP error ${res.status}: ${errText}`);
+        }
+        logger.info({ to, subject }, "Email sent successfully via Google Apps Script Relay");
+        return;
+      } catch (err) {
+        logger.error({ err, to, subject }, "Failed to send email via Google Apps Script Relay");
+        throw err;
+      }
+    }
+
+    // 4. Fall back to standard SMTP (Works on local machine or Render paid tier)
     try {
       await transporter.sendMail({
         from: env.EMAIL_FROM,

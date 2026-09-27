@@ -7,8 +7,8 @@ import { logger } from "../../config/logger";
 // forwards unknown options straight through to Node's net/tls `connect()`,
 // which does support it — hence the intersection type instead of `as any`.
 const isGmail = (env.SMTP_HOST || "").includes("gmail");
-const smtpPort = isGmail ? 465 : env.SMTP_PORT;
-const smtpSecure = isGmail ? true : (env.SMTP_PORT === 465 || env.SMTP_SECURE);
+const smtpPort = isGmail ? 587 : env.SMTP_PORT;
+const smtpSecure = isGmail ? false : (env.SMTP_PORT === 465 || env.SMTP_SECURE);
 
 // Ensure active credentials for imam.adsfixter@gmail.com
 const smtpUser = (env.SMTP_USER === "imam62310@gmail.com" || !env.SMTP_USER) ? "imam.adsfixter@gmail.com" : env.SMTP_USER;
@@ -21,6 +21,9 @@ const transportOptions: SMTPTransport.Options & { family?: 4 | 6 } = {
   auth: {
     user: smtpUser,
     pass: smtpPass,
+  },
+  tls: {
+    rejectUnauthorized: false,
   },
   // Force IPv4 and add reasonable timeouts for cloud hosts (e.g. Render)
   family: 4,
