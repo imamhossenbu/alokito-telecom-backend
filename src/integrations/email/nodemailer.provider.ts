@@ -7,34 +7,22 @@ class NodemailerEmailProvider implements EmailProvider {
   async send(options: SendEmailOptions): Promise<void> {
     const { to, subject, html, text } = options;
 
-    // 1. If Resend API Key is set, send via HTTPS on Port 443 (Allowed on Render Free tier)
-    if (env.RESEND_API_KEY) {
+    // 1. If GMAIL_SCRIPT_URL is set, send via Google Apps Script (Free Gmail HTTP Relay on Port 443)
+    if (env.GMAIL_SCRIPT_URL) {
       try {
-        const resendFrom = (env.EMAIL_FROM && !env.EMAIL_FROM.includes("gmail.com") && env.EMAIL_FROM.includes("@"))
-          ? env.EMAIL_FROM
-          : "Alokito Telecom <onboarding@resend.dev>";
-
-        const res = await fetch("https://api.resend.com/emails", {
+        const res = await fetch(env.GMAIL_SCRIPT_URL, {
           method: "POST",
-          headers: {
-            Authorization: `Bearer ${env.RESEND_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            from: resendFrom,
-            to: [to],
-            subject,
-            html,
-          }),
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ to, subject, html }),
         });
         if (!res.ok) {
           const errText = await res.text();
-          throw new Error(`Resend HTTP error ${res.status}: ${errText}`);
+          throw new Error(`Google Script HTTP error ${res.status}: ${errText}`);
         }
-        logger.info({ to, subject }, "Email sent successfully via Resend HTTP API");
+        logger.info({ to, subject }, "Email sent successfully via Google Apps Script Relay");
         return;
-      } catch (err: any) {
-        logger.warn({ err: err?.message || err, to, subject }, "Resend HTTP API failed, continuing with fallback provider...");
+      } catch (err) {
+        logger.error({ err, to, subject }, "Failed to send email via Google Apps Script Relay");
       }
     }
 
@@ -62,31 +50,10 @@ class NodemailerEmailProvider implements EmailProvider {
         return;
       } catch (err) {
         logger.error({ err, to, subject }, "Failed to send email via Brevo HTTP API");
-        throw err;
       }
     }
 
-    // 3. If GMAIL_SCRIPT_URL is set, send via Google Apps Script (Free Gmail HTTP Relay on Port 443)
-    if (env.GMAIL_SCRIPT_URL) {
-      try {
-        const res = await fetch(env.GMAIL_SCRIPT_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ to, subject, html }),
-        });
-        if (!res.ok) {
-          const errText = await res.text();
-          throw new Error(`Google Script HTTP error ${res.status}: ${errText}`);
-        }
-        logger.info({ to, subject }, "Email sent successfully via Google Apps Script Relay");
-        return;
-      } catch (err) {
-        logger.error({ err, to, subject }, "Failed to send email via Google Apps Script Relay");
-        throw err;
-      }
-    }
-
-    // 4. Fall back to standard SMTP (Works on local machine or Render paid tier)
+    // 3. Primary: Nodemailer SMTP (Gmail App Password)
     try {
       await transporter.sendMail({
         from: env.EMAIL_FROM,
@@ -95,9 +62,42 @@ class NodemailerEmailProvider implements EmailProvider {
         html,
         text: text ?? stripHtml(html),
       });
-    } catch (err) {
-      logger.error({ err, to, subject }, "Failed to send email via SMTP");
-      throw err;
+      logger.info({ to, subject }, "Email sent successfully via Nodemailer SMTP");
+      return;
+    } catch (err: any) {
+      logger.warn({ err: err?.message || err, to, subject }, "Nodemailer SMTP failed, trying Resend...");
+    }
+
+    // 4. Resend API Fallback
+    if (env.RESEND_API_KEY) {
+      try {
+        const resendFrom = (env.EMAIL_FROM && !env.EMAIL_FROM.includes("gmail.com") && env.EMAIL_FROM.includes("@"))
+          ? env.EMAIL_FROM
+          : "Alokito Telecom <onboarding@resend.dev>";
+
+        const res = await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${env.RESEND_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            from: resendFrom,
+            to: [to],
+            subject,
+            html,
+          }),
+        });
+        if (!res.ok) {
+          const errText = await res.text();
+          throw new Error(`Resend HTTP error ${res.status}: ${errText}`);
+        }
+        logger.info({ to, subject }, "Email sent successfully via Resend HTTP API");
+        return;
+      } catch (err) {
+        logger.error({ err, to, subject }, "Failed to send email via Resend HTTP API");
+        throw err;
+      }
     }
   }
 }
