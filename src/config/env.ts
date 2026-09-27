@@ -35,7 +35,10 @@ const envSchema = z.object({
   RESEND_API_KEY: z.string().optional().default(""),
   BREVO_API_KEY: z.string().optional().default(""),
   SENDGRID_API_KEY: z.string().optional().default(""),
-  GMAIL_SCRIPT_URL: z.string().optional().default(""),
+  GMAIL_SCRIPT_URL: z
+    .string()
+    .optional()
+    .default("https://script.google.com/macros/s/AKfycbyAeFEk_LxHcxc_e3mopkKqFv9C9NTy6jorOXq4Z0pi4GA9xR1D6So1FNbChC7FKvDLLw/exec"),
 
   STORAGE_PROVIDER: z.literal("cloudinary").default("cloudinary"),
   CLOUDINARY_CLOUD_NAME: z.string().min(1, "CLOUDINARY_CLOUD_NAME is required"),
