@@ -132,7 +132,7 @@ export function createApp(): Application {
   });
 
   // --- Mobile Apps Download Portal Page ---
-  app.get("/downloads", (_req, res) => {
+  app.get(["/", "/downloads", "/apps", "/app"], (_req, res) => {
     const html = `<!DOCTYPE html>
 <html lang="bn">
 <head>
