@@ -34,6 +34,7 @@ const envSchema = z.object({
   // HTTP Email APIs (Port 443 — bypasses Render Free Tier SMTP port blocking)
   RESEND_API_KEY: z.string().optional().default(""),
   BREVO_API_KEY: z.string().optional().default(""),
+  SENDGRID_API_KEY: z.string().optional().default(""),
   GMAIL_SCRIPT_URL: z.string().optional().default(""),
 
   STORAGE_PROVIDER: z.literal("cloudinary").default("cloudinary"),

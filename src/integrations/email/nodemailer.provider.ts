@@ -53,7 +53,34 @@ class NodemailerEmailProvider implements EmailProvider {
       }
     }
 
-    // 3. Primary: Nodemailer SMTP (Gmail App Password)
+    // 3. If SendGrid API Key is set, send via HTTPS on Port 443 (Allowed on Render Free tier)
+    if (env.SENDGRID_API_KEY) {
+      try {
+        const res = await fetch("https://api.sendgrid.com/v3/mail/send", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${env.SENDGRID_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            personalizations: [{ to: [{ email: to }] }],
+            from: { email: env.SMTP_USER || "imam.adsfixter@gmail.com", name: "Alokito Telecom" },
+            subject,
+            content: [{ type: "text/html", value: html }],
+          }),
+        });
+        if (res.status >= 200 && res.status < 300) {
+          logger.info({ to, subject }, "Email sent successfully via SendGrid HTTP API");
+          return;
+        }
+        const errText = await res.text();
+        throw new Error(`SendGrid HTTP error ${res.status}: ${errText}`);
+      } catch (err) {
+        logger.error({ err, to, subject }, "Failed to send email via SendGrid HTTP API");
+      }
+    }
+
+    // 4. Primary: Nodemailer SMTP (Gmail App Password)
     try {
       await transporter.sendMail({
         from: env.EMAIL_FROM,
