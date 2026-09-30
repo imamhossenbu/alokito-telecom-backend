@@ -86,10 +86,16 @@ export const userRepository = {
 
   async updateProfile(
     userId: Types.ObjectId,
-    data: { name?: string; district?: string; address?: string },
+    data: { name?: string; phone?: string; email?: string; status?: string; district?: string; address?: string },
   ) {
     const update: Record<string, unknown> = {};
     if (data.name !== undefined) update.name = data.name;
+    if (data.phone !== undefined) update.phone = data.phone;
+    if (data.email !== undefined) {
+      update.email = data.email;
+      update.emailNormalized = data.email.toLowerCase().trim();
+    }
+    if (data.status !== undefined) update.accountStatus = data.status;
     if (data.district !== undefined) update.district = data.district;
     if (data.address !== undefined) update.address = data.address;
     return UserModel.findOneAndUpdate(

@@ -69,9 +69,13 @@ export const userService = {
   },
 
   async updateMe(userId: string, body: UpdateProfileBody) {
+    const updateData: any = { ...body };
+    if (body.phone) {
+      updateData.phone = normalizeBdPhone(body.phone);
+    }
     const user = await userRepository.updateProfile(
       new Types.ObjectId(userId),
-      body,
+      updateData,
     );
     if (!user) throw new NotFoundError("USER_NOT_FOUND", "User not found");
     return serializeUser(user);

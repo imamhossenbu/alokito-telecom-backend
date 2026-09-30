@@ -502,22 +502,57 @@ export const paymentDeviceService = {
       }
     }
 
+    // 2. Check if any paired devices with numbers exist if activeMethods is still empty
     if (activeMethods.length === 0) {
-      try {
-        const { systemSettingsService } = await import("../systemSettings/systemSettings.service");
-        const settings = await systemSettingsService.getSettings();
-        const fallbacks = settings.fallbackPaymentNumbers;
-        if (fallbacks?.bkash) activeMethods.push({ provider: "BKASH", paymentNumber: fallbacks.bkash, status: "AVAILABLE" });
-        if (fallbacks?.nagad) activeMethods.push({ provider: "NAGAD", paymentNumber: fallbacks.nagad, status: "AVAILABLE" });
-        if (fallbacks?.rocket) activeMethods.push({ provider: "ROCKET", paymentNumber: fallbacks.rocket, status: "AVAILABLE" });
-        if (fallbacks?.upay) activeMethods.push({ provider: "UPAY", paymentNumber: fallbacks.upay, status: "AVAILABLE" });
-      } catch (_) {
-        activeMethods.push(
-          { provider: "BKASH", paymentNumber: "01890000001", status: "AVAILABLE" },
-          { provider: "NAGAD", paymentNumber: "01890000001", status: "AVAILABLE" }
-        );
+      const anyDevices = await PaymentDeviceModel.find({
+        status: { $in: [PaymentDeviceStatus.CONNECTED, PaymentDeviceStatus.PENDING, PaymentDeviceStatus.OFFLINE] }
+      });
+      for (const d of anyDevices) {
+        if (d.sim1PhoneNumber && d.sim1Providers) {
+          const provs = d.sim1Providers.split(/[,|]/).map((p) => p.trim()).filter(Boolean);
+          for (const prov of provs) {
+            activeMethods.push({
+              provider: prov,
+              paymentNumber: d.sim1PhoneNumber,
+              simSlot: 1,
+              status: "AVAILABLE",
+            });
+          }
+        }
+        if (d.sim2PhoneNumber && d.sim2Providers) {
+          const provs = d.sim2Providers.split(/[,|]/).map((p) => p.trim()).filter(Boolean);
+          for (const prov of provs) {
+            activeMethods.push({
+              provider: prov,
+              paymentNumber: d.sim2PhoneNumber,
+              simSlot: 2,
+              status: "AVAILABLE",
+            });
+          }
+        }
       }
     }
+
+    // 3. Supplement or fallback with system configured payment numbers
+    try {
+      const { systemSettingsService } = await import("../systemSettings/systemSettings.service");
+      const settings = await systemSettingsService.getSettings();
+      const fallbacks = settings.fallbackPaymentNumbers;
+      const existingProviders = new Set(activeMethods.map((m) => m.provider.toUpperCase()));
+
+      if (fallbacks?.bkash && (!existingProviders.has("BKASH") || activeMethods.length === 0)) {
+        activeMethods.push({ provider: "BKASH", paymentNumber: fallbacks.bkash, status: "AVAILABLE" });
+      }
+      if (fallbacks?.nagad && (!existingProviders.has("NAGAD") || activeMethods.length === 0)) {
+        activeMethods.push({ provider: "NAGAD", paymentNumber: fallbacks.nagad, status: "AVAILABLE" });
+      }
+      if (fallbacks?.rocket && (!existingProviders.has("ROCKET") || activeMethods.length === 0)) {
+        activeMethods.push({ provider: "ROCKET", paymentNumber: fallbacks.rocket, status: "AVAILABLE" });
+      }
+      if (fallbacks?.upay && (!existingProviders.has("UPAY") || activeMethods.length === 0)) {
+        activeMethods.push({ provider: "UPAY", paymentNumber: fallbacks.upay, status: "AVAILABLE" });
+      }
+    } catch (_) {}
 
     return activeMethods;
   },

@@ -4,6 +4,13 @@ import { paginationQuerySchema } from "../../shared/pagination/paginate";
 // ── PATCH /users/me ────────────────────────────────────
 export const updateProfileBodySchema = z.object({
   name: z.string().min(2).max(100).optional(),
+  phone: z
+    .string()
+    .regex(
+      /^(?:\+?880|0)1[3-9]\d{8}$/,
+      "Enter a valid Bangladeshi phone number",
+    )
+    .optional(),
   district: z.string().max(100).optional(),
   address: z.string().max(300).optional(),
 });
@@ -55,6 +62,17 @@ export type AdminCreateCustomerBody = z.infer<
 // ── Admin: PATCH /admin/users/:id ───────────────────────
 export const adminUpdateCustomerBodySchema = z.object({
   name: z.string().min(2).max(100).optional(),
+  phone: z
+    .string()
+    .regex(
+      /^(?:\+?880|0)1[3-9]\d{8}$/,
+      "Enter a valid Bangladeshi phone number",
+    )
+    .optional(),
+  email: z.string().email().optional(),
+  status: z
+    .enum(["PENDING", "ACTIVE", "BLOCKED", "SUSPENDED", "DELETED"])
+    .optional(),
   district: z.string().max(100).optional(),
   address: z.string().max(300).optional(),
 });

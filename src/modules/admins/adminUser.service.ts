@@ -135,9 +135,13 @@ export const adminUserService = {
   },
 
   async update(id: string, body: AdminUpdateCustomerBody) {
+    const updateData: any = { ...body };
+    if (body.phone) {
+      updateData.phone = normalizeBdPhone(body.phone);
+    }
     const user = await userRepository.updateProfile(
       new Types.ObjectId(id),
-      body,
+      updateData,
     );
     if (!user) throw new NotFoundError("USER_NOT_FOUND", "User not found");
     return serializeUserSummary(user);

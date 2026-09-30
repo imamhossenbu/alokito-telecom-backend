@@ -44,3 +44,40 @@ export function authMiddleware(
     next(new UnauthorizedError("Invalid access token"));
   }
 }
+
+/**
+ * Optional authentication middleware:
+ * Populates req.actor if a valid Bearer token is provided,
+ * but allows the request to continue if no token is present.
+ */
+export function optionalAuthMiddleware(
+  req: Request,
+  _res: Response,
+  next: NextFunction,
+): void {
+  const token = extractBearerToken(req);
+  if (!token) {
+    return next();
+  }
+
+  try {
+    const payload = verifyAccessToken(token);
+    if (payload.type === "CUSTOMER") {
+      req.actor = {
+        type: "CUSTOMER",
+        userId: payload.sub,
+        sessionId: payload.sessionId,
+        deviceId: payload.deviceId,
+      };
+    } else if (payload.type === "ADMIN") {
+      req.actor = {
+        type: "ADMIN",
+        adminId: payload.sub,
+      };
+    }
+  } catch (_) {
+    // Ignore invalid/expired token on optional routes so public view works seamlessly
+  }
+  next();
+}
+

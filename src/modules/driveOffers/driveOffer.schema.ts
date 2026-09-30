@@ -35,8 +35,9 @@ export type UpdateDriveOfferBody = z.infer<typeof updateDriveOfferBodySchema>;
 
 export const listDriveOffersQuerySchema = z.object({
   operatorId: z.string().optional(),
+  operator: z.string().optional(),
   category: z.string().optional(),
   page: z.coerce.number().int().min(1).default(1),
-  limit: z.coerce.number().int().min(1).max(100).default(20),
+  limit: z.coerce.number().int().min(1).max(100).default(50),
 });
 export type ListDriveOffersQuery = z.infer<typeof listDriveOffersQuerySchema>;
