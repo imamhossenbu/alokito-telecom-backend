@@ -19,54 +19,74 @@ It coordinates between the **Customer Mobile App**, **Executive Admin App**, and
 The backend sits at the center of a 4-component distributed ecosystem:
 
 ```mermaid
-flowchart TD
-    subgraph Client_Applications ["Client Applications"]
-        CA["📱 Customer App\n(Flutter Mobile/Web)"]
-        AA["👑 Admin App\n(Flutter Executive Portal)"]
-        SL["📲 SMS Listener Device\n(Android Foreground Service)"]
+flowchart TB
+    %% Class Styles
+    classDef clientLayer fill:#EEF2FF,stroke:#6366F1,stroke-width:2px,color:#1E1B4B,rx:8,ry:8;
+    classDef gatewayLayer fill:#F0FDF4,stroke:#22C55E,stroke-width:2px,color:#14532D,rx:8,ry:8;
+    classDef coreLayer fill:#F8FAFC,stroke:#0EA5E9,stroke-width:2px,color:#0F172A,rx:8,ry:8;
+    classDef dbLayer fill:#FEFCE8,stroke:#EAB308,stroke-width:2px,color:#713F12,rx:8,ry:8;
+    classDef extLayer fill:#FFF1F2,stroke:#F43F5E,stroke-width:2px,color:#881337,rx:8,ry:8;
+
+    subgraph Tier_Clients ["1. CLIENT APPLICATIONS"]
+        CA["📱 Customer Mobile App\n(Flutter / Dart)"]:::clientLayer
+        AA["👑 Admin Executive Portal\n(Flutter Web & App)"]:::clientLayer
+        SL["📲 SMS Listener Device\n(Android Foreground Daemon)"]:::clientLayer
     end
 
-    subgraph Backend_Core_Engine ["Alokito Telecom Backend - Node.js and TS"]
-        API["Express REST API & Middleware"]
-        WS["Socket.io WebSocket Gateway"]
-        AUTH["Argon2 Auth & Trusted Device Engine"]
-        LEDGER["Double-Entry Poisha Ledger"]
-        NORM["SMS Parser & Normalizer Engine"]
-        OCR["Local Tesseract.js OCR for NID KYC"]
-        QUEUE["BullMQ Background Workers"]
+    subgraph Tier_Gateway ["2. API GATEWAY & REAL-TIME HUB"]
+        API["⚡ Express REST Gateway\n(Rate Limiter, Helmet, Zod Validation)"]:::gatewayLayer
+        WS["🔔 Socket.io Real-Time Hub\n(JWT Authenticated Rooms)"]:::gatewayLayer
     end
 
-    subgraph Data_Storage ["Data and Storage"]
-        MONGO[("🍃 MongoDB Replica Set\nACID Multi-Doc Transactions")]
-        REDIS[("⚡ Redis Cache & Queues\nDistributed Rate Limiter")]
-        CDN["☁️ Cloudinary Storage\nEncrypted NID KYC / Avatars"]
+    subgraph Tier_Core ["3. CORE BUSINESS DOMAIN & LEDGER"]
+        direction TB
+        AUTH["🔐 Argon2 Auth & Trusted Devices"]:::coreLayer
+        LEDGER["💰 Double-Entry Poisha Ledger\n(Integer Currency Math)"]:::coreLayer
+        NORM["📩 SMS Normalizer & TrxID Matcher"]:::coreLayer
+        OCR["👁️ Local Tesseract.js OCR\n(Bengali & English KYC Models)"]:::coreLayer
+        STATE_MACHINE["🔄 Order Lifecycle State Machine\n(Pending → Processing → Complete / Auto-Refund)"]:::coreLayer
+        QUEUE["⚙️ BullMQ Queue Workers\n(Async Emails & Alerts)"]:::coreLayer
     end
 
-    subgraph External_Integrations ["External Telecom and MFS"]
-        MFS["bKash / Nagad / Rocket / Upay\nPayment Confirmation SMS"]
-        TELCO["GP / Robi / Banglalink / Airtel / Teletalk\nDrive Offer Packs"]
+    subgraph Tier_Persistence ["4. PERSISTENCE & STORAGE VAULT"]
+        MONGO[("🍃 MongoDB Replica Set\nACID Multi-Doc Transactions")]:::dbLayer
+        REDIS[("⚡ Redis Cache & Task Queue\nDistributed Rate Limiting")]:::dbLayer
+        CDN["☁️ Cloudinary Storage\nEncrypted NID KYC & Avatars"]:::dbLayer
     end
 
-    CA -->|Auth, Orders, Add Money| API
-    AA -->|CRUD Packs, Approvals, Devices| API
-    SL -->|Heartbeat, Raw SMS Events| API
+    subgraph Tier_External ["5. EXTERNAL TELECOM & MFS NETWORKS"]
+        MFS["💳 bKash / Nagad / Rocket / Upay\n(MFS Payment Confirmation SMS)"]:::extLayer
+        TELCO["📶 GP / Robi / Banglalink / Airtel / Teletalk\n(Drive Offer Package Activation)"]:::extLayer
+    end
 
+    %% Client Interactions
+    CA -->|1. Customer Orders & Add Money| API
+    AA -->|2. Administrative Controls & Approvals| API
+    SL -->|3. Device Heartbeat & Raw SMS Events| API
+
+    %% Real-time Broadcasts
     API --> WS
-    WS -.->|Real-time Order Alerts| AA
+    WS -.->|Real-Time New Order Chimes| AA
     WS -.->|Push Notifications| CA
 
+    %% API to Domain
     API --> AUTH
     API --> LEDGER
     API --> NORM
     API --> OCR
+    API --> STATE_MACHINE
+    API --> QUEUE
 
-    LEDGER --> MONGO
-    QUEUE --> REDIS
-    API --> REDIS
-    OCR --> CDN
+    %% Domain to Persistence
+    LEDGER -->|Atomic Balance Mutations| MONGO
+    STATE_MACHINE -->|Order History & Audit Logs| MONGO
+    QUEUE -->|Async Job Processing| REDIS
+    API -->|Distributed Rate Counter| REDIS
+    OCR -->|Secure Image Retrieval| CDN
 
-    MFS -.->|Incoming SMS| SL
-    AA -.->|Fulfill Packs| TELCO
+    %% External Connections
+    MFS -.->|Payment Notification SMS| SL
+    AA -.->|Sim Fulfill Packs| TELCO
 ```
 
 ---
