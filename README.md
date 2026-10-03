@@ -20,31 +20,31 @@ The backend sits at the center of a 4-component distributed ecosystem:
 
 ```mermaid
 flowchart TD
-    subgraph Client Applications
+    subgraph Client_Applications ["Client Applications"]
         CA["📱 Customer App\n(Flutter Mobile/Web)"]
         AA["👑 Admin App\n(Flutter Executive Portal)"]
         SL["📲 SMS Listener Device\n(Android Foreground Service)"]
     end
 
-    subgraph Backend Core Engine ["Alokito Telecom Backend (Node.js + TS)"]
+    subgraph Backend_Core_Engine ["Alokito Telecom Backend - Node.js and TS"]
         API["Express REST API & Middleware"]
         WS["Socket.io WebSocket Gateway"]
         AUTH["Argon2 Auth & Trusted Device Engine"]
         LEDGER["Double-Entry Poisha Ledger"]
         NORM["SMS Parser & Normalizer Engine"]
-        OCR["Local Tesseract.js OCR (NID KYC)"]
+        OCR["Local Tesseract.js OCR for NID KYC"]
         QUEUE["BullMQ Background Workers"]
     end
 
-    subgraph Data & Storage
-        MONGO[("🍃 MongoDB Replica Set\n(ACID Multi-Doc Transactions)")]
-        REDIS[("⚡ Redis Cache & Queues\n(Distributed Rate Limiter)")]
-        CDN["☁️ Cloudinary Storage\n(Encrypted NID KYC / Avatars)"]
+    subgraph Data_Storage ["Data and Storage"]
+        MONGO[("🍃 MongoDB Replica Set\nACID Multi-Doc Transactions")]
+        REDIS[("⚡ Redis Cache & Queues\nDistributed Rate Limiter")]
+        CDN["☁️ Cloudinary Storage\nEncrypted NID KYC / Avatars"]
     end
 
-    subgraph External Telecom & MFS
-        MFS["bKash / Nagad / Rocket / Upay\n(MFS Payment Confirmation SMS)"]
-        TELCO["GP / Robi / Banglalink / Airtel / Teletalk\n(Drive Offer Packs)"]
+    subgraph External_Integrations ["External Telecom and MFS"]
+        MFS["bKash / Nagad / Rocket / Upay\nPayment Confirmation SMS"]
+        TELCO["GP / Robi / Banglalink / Airtel / Teletalk\nDrive Offer Packs"]
     end
 
     CA -->|Auth, Orders, Add Money| API
@@ -90,7 +90,7 @@ flowchart TD
 ## 🧠 Core Engineering Principles
 
 ### 1. Integer-Based "Poisha" Double-Entry Ledger
-* All monetary balances and calculations are strictly stored in integer **poisha** ($1\text{ BDT} = 100\text{ poisha}$).
+* All monetary balances and calculations are strictly stored in integer **poisha** (1 BDT = 100 poisha).
 * Floating-point calculations are strictly forbidden to eliminate rounding errors.
 * Every balance mutation (deposit, purchase, commission, refund) writes an immutable record to the `WalletTransaction` collection within a MongoDB ACID multi-document transaction session.
 
@@ -106,7 +106,9 @@ flowchart TD
 
 ### 4. Resilient Order Lifecycle State Machine
 Orders transition predictably across distinct states:
-$$\text{PENDING} \longrightarrow \text{PROCESSING} \longrightarrow \text{COMPLETED} \quad \text{or} \quad \text{FAILED / CANCELLED}$$
+
+`PENDING` → `PROCESSING` → `COMPLETED` (or `FAILED` / `CANCELLED`)
+
 * If an order fails or is cancelled by an administrator, the backend **automatically triggers an instant atomic refund** back into the customer's wallet ledger.
 
 ---
