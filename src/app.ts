@@ -142,6 +142,18 @@ export function createApp(): Application {
   <link rel="icon" type="image/png" href="/public/favicon.png">
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Hind+Siliguri:wght@500;600;700&display=swap" rel="stylesheet">
   <style>
+    @font-face {
+      font-family: 'Bornomala';
+      src: url('/public/fonts/Bornomala-Regular.ttf') format('truetype');
+      font-weight: 400;
+      font-style: normal;
+    }
+    @font-face {
+      font-family: 'Bornomala';
+      src: url('/public/fonts/Bornomala-Bold.ttf') format('truetype');
+      font-weight: 700;
+      font-style: normal;
+    }
     :root {
       --primary: #0D5E36;
       --primary-light: #15803D;
@@ -153,7 +165,7 @@ export function createApp(): Application {
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      font-family: 'Plus Jakarta Sans', 'Hind Siliguri', sans-serif;
+      font-family: 'Bornomala', 'Plus Jakarta Sans', sans-serif;
       background: radial-gradient(circle at top, #13271E 0%, #080D14 100%);
       color: var(--text);
       min-height: 100vh;
