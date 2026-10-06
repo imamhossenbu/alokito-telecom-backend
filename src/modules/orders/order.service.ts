@@ -13,6 +13,7 @@ import { poishaToBdt } from "../../shared/utils/money";
 import { auditLogService } from "../auditLogs/auditLog.service";
 import { ActorType } from "../auditLogs/auditLog.model";
 import { notificationService } from "../notifications/notification.service";
+import { broadcastToAdmins } from "../../config/socket";
 
 function validateStateTransition(current: OrderStatusType, target: OrderStatusType) {
   const allowed = ORDER_STATE_TRANSITIONS[current];
@@ -151,7 +152,7 @@ export const orderService = {
         metadata: { orderNumber: (result as any).orderNumber },
       });
 
-      // Send notification
+      // Send notification to customer
       await notificationService.send({
         userId: new Types.ObjectId(userId),
         type: "ORDER_CREATED",
@@ -160,6 +161,28 @@ export const orderService = {
         referenceType: "Order",
         referenceId: new Types.ObjectId((result as any).orderId),
       });
+
+      // Broadcast real-time order event to all administrators for instant voice/sound alerts
+      try {
+        broadcastToAdmins("new_order", {
+          orderId: (result as any).orderId,
+          orderNumber: (result as any).orderNumber,
+          offerName: (result as any).offerName,
+          phone: phone,
+          price: (result as any).price,
+          status: "PENDING",
+          createdAt: new Date(),
+        });
+        broadcastToAdmins("new_notification", {
+          id: `ord_pend_${(result as any).orderId}`,
+          type: "ORDER",
+          title: `নতুন অফার অর্ডার: ${(result as any).orderNumber}`,
+          message: `${phone} নম্বরে নতুন অফার অর্ডার এসেছে`,
+          createdAt: new Date(),
+        });
+      } catch (err) {
+        // Socket broadcast shouldn't fail order transaction
+      }
 
       return result;
     } finally {

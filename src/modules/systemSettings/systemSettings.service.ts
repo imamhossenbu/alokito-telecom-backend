@@ -50,6 +50,38 @@ export class SystemSettingsService {
         ...settings.fallbackPaymentNumbers,
         ...data.fallbackPaymentNumbers,
       };
+
+      // Also update any paired/registered PaymentDevice so both stay synchronized
+      try {
+        const { PaymentDeviceModel } = await import("../paymentDevices/paymentDevice.model");
+        const activeDevice = await PaymentDeviceModel.findOne({
+          status: { $in: ["CONNECTED", "PENDING", "OFFLINE"] }
+        }).sort({ updatedAt: -1 });
+
+        if (activeDevice) {
+          const fb = settings.fallbackPaymentNumbers;
+          if (fb.bkash) {
+            if (activeDevice.sim1Providers?.toUpperCase().includes("BKASH") || !activeDevice.sim1PhoneNumber) {
+              activeDevice.sim1PhoneNumber = fb.bkash;
+              if (!activeDevice.sim1Providers) activeDevice.sim1Providers = "BKASH";
+            } else if (activeDevice.sim2Providers?.toUpperCase().includes("BKASH")) {
+              activeDevice.sim2PhoneNumber = fb.bkash;
+            }
+          }
+          if (fb.nagad) {
+            if (activeDevice.sim2Providers?.toUpperCase().includes("NAGAD") || (!activeDevice.sim2PhoneNumber && activeDevice.sim1PhoneNumber !== fb.nagad)) {
+              activeDevice.sim2PhoneNumber = fb.nagad;
+              if (!activeDevice.sim2Providers) activeDevice.sim2Providers = "NAGAD";
+            } else if (activeDevice.sim1Providers?.toUpperCase().includes("NAGAD")) {
+              activeDevice.sim1PhoneNumber = fb.nagad;
+            }
+          }
+          if (fb.bkash && (!activeDevice.phoneNumber || !activeDevice.phoneNumber.includes(","))) {
+            activeDevice.phoneNumber = fb.bkash;
+          }
+          await activeDevice.save();
+        }
+      } catch (_) {}
     }
     if (data.manualVerificationNote !== undefined) {
       settings.manualVerificationNote = data.manualVerificationNote;

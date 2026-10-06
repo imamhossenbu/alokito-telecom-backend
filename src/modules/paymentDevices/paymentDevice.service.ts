@@ -20,6 +20,47 @@ function generateSmsFingerprint(provider: string, transactionId: string, amount:
   return crypto.createHash("sha256").update(data).digest("hex");
 }
 
+async function syncDeviceNumbersToSystemSettings(device: any) {
+  try {
+    const { systemSettingsService } = await import("../systemSettings/systemSettings.service");
+    const fallbacks: any = {};
+
+    const checkAndAssign = (phone?: string, provsStr?: string) => {
+      if (!phone || !provsStr) return;
+      const cleanPhone = phone.trim();
+      if (!cleanPhone || cleanPhone === "Unknown") return;
+      const provs = provsStr.toUpperCase().split(/[,|]/).map((p) => p.trim());
+      if (provs.includes("BKASH") && !fallbacks.bkash) fallbacks.bkash = cleanPhone;
+      if (provs.includes("NAGAD") && !fallbacks.nagad) fallbacks.nagad = cleanPhone;
+      if (provs.includes("ROCKET") && !fallbacks.rocket) fallbacks.rocket = cleanPhone;
+      if (provs.includes("UPAY") && !fallbacks.upay) fallbacks.upay = cleanPhone;
+    };
+
+    // 1. Check SIM 1 & SIM 2
+    checkAndAssign(device.sim1PhoneNumber, device.sim1Providers);
+    checkAndAssign(device.sim2PhoneNumber, device.sim2Providers);
+
+    // 2. Check legacy phone & providers
+    if (device.phoneNumber && device.paymentProvider) {
+      const phones = device.phoneNumber.split(/[,|]/).map((p: string) => p.trim());
+      const provs = device.paymentProvider.split(/[,|]/).map((p: string) => p.trim());
+      phones.forEach((p: string, idx: number) => {
+        const provStr = provs[idx] || device.paymentProvider;
+        checkAndAssign(p, provStr);
+      });
+    }
+
+    if (Object.keys(fallbacks).length > 0) {
+      await systemSettingsService.updateSettings({
+        fallbackPaymentNumbers: fallbacks,
+      });
+      logger.info({ fallbacks, deviceId: device.deviceId }, "Synchronized listener device payment numbers to system settings");
+    }
+  } catch (err) {
+    logger.warn({ err }, "Could not sync device numbers to system settings");
+  }
+}
+
 export const paymentDeviceService = {
   // ── Admin: Pair generation ───────────────────────────
   async adminCreatePairing(adminId: string) {
@@ -100,6 +141,15 @@ export const paymentDeviceService = {
           updateSet.paymentProvider = existingDevice.paymentProvider;
         }
 
+        if (existingDevice && existingDevice.sim1PhoneNumber) {
+          updateSet.sim1PhoneNumber = existingDevice.sim1PhoneNumber;
+          updateSet.sim1Providers = existingDevice.sim1Providers;
+        }
+        if (existingDevice && existingDevice.sim2PhoneNumber) {
+          updateSet.sim2PhoneNumber = existingDevice.sim2PhoneNumber;
+          updateSet.sim2Providers = existingDevice.sim2Providers;
+        }
+
         device = await PaymentDeviceModel.findOneAndUpdate(
           { deviceId: data.deviceId },
           { $set: updateSet },
@@ -127,6 +177,9 @@ export const paymentDeviceService = {
         metadata: { deviceId: data.deviceId, deviceName: data.deviceName },
       });
 
+      // Synchronize device payment numbers to system settings if available
+      await syncDeviceNumbersToSystemSettings(device);
+
       // Generate JWT device credential token
       const token = signAccessToken({
         sub: (device as any)._id.toString(),
@@ -144,6 +197,10 @@ export const paymentDeviceService = {
           simSlot: device.simSlot !== undefined ? device.simSlot : null,
           simOperator: device.simOperator || null,
           paymentProvider: device.paymentProvider || null,
+          sim1PhoneNumber: device.sim1PhoneNumber || null,
+          sim1Providers: device.sim1Providers || null,
+          sim2PhoneNumber: device.sim2PhoneNumber || null,
+          sim2Providers: device.sim2Providers || null,
         }
       };
     } finally {
@@ -161,6 +218,10 @@ export const paymentDeviceService = {
       simOperator?: string;
       appVersion?: string;
       deviceName?: string;
+      sim1PhoneNumber?: string;
+      sim1Providers?: string;
+      sim2PhoneNumber?: string;
+      sim2Providers?: string;
     }
   ) {
     const device = await PaymentDeviceModel.findById(paymentDeviceId);
@@ -175,9 +236,32 @@ export const paymentDeviceService = {
     if (data.appVersion) device.appVersion = data.appVersion;
     if (data.deviceName) device.deviceName = data.deviceName;
 
+    // Explicit SIM slots if passed
+    if (data.sim1PhoneNumber !== undefined) device.sim1PhoneNumber = data.sim1PhoneNumber;
+    if (data.sim1Providers !== undefined) device.sim1Providers = data.sim1Providers;
+    if (data.sim2PhoneNumber !== undefined) device.sim2PhoneNumber = data.sim2PhoneNumber;
+    if (data.sim2Providers !== undefined) device.sim2Providers = data.sim2Providers;
+
+    // Automatically parse comma-separated phoneNumber and paymentProvider if sim1/sim2 not explicitly provided
+    if ((!device.sim1PhoneNumber || !device.sim2PhoneNumber) && device.phoneNumber) {
+      const phones = device.phoneNumber.split(",").map((s) => s.trim()).filter(Boolean);
+      const provs = (device.paymentProvider || "").split(",").map((s) => s.trim()).filter(Boolean);
+      if (phones.length > 0 && !device.sim1PhoneNumber) {
+        device.sim1PhoneNumber = phones[0];
+        device.sim1Providers = provs[0] || device.paymentProvider || "BKASH";
+      }
+      if (phones.length > 1 && !device.sim2PhoneNumber) {
+        device.sim2PhoneNumber = phones[1];
+        device.sim2Providers = provs[1] || "NAGAD";
+      }
+    }
+
     device.status = PaymentDeviceStatus.CONNECTED;
     device.lastSeenAt = new Date();
     await device.save();
+
+    // Auto-sync active device numbers to system settings so Admin & Customer panels update immediately
+    await syncDeviceNumbersToSystemSettings(device);
 
     await auditLogService.log({
       actorType: ActorType.DEVICE,
@@ -201,6 +285,9 @@ export const paymentDeviceService = {
     device.lastSeenAt = new Date();
     device.status = PaymentDeviceStatus.CONNECTED;
     await device.save();
+
+    // Sync device numbers to system settings on heartbeat
+    await syncDeviceNumbersToSystemSettings(device);
 
     // Listener app expects the device document in 'data.device' to keep local state synced
     // Make sure to map _id to id so Flutter can parse it
@@ -347,6 +434,7 @@ export const paymentDeviceService = {
     if (data.sim2Providers !== undefined) device.sim2Providers = data.sim2Providers;
 
     await device.save();
+    await syncDeviceNumbersToSystemSettings(device);
 
     await auditLogService.log({
       actorType: ActorType.ADMIN,
@@ -529,6 +617,19 @@ export const paymentDeviceService = {
               status: "AVAILABLE",
             });
           }
+        }
+        if (d.phoneNumber && d.paymentProvider && !d.sim1PhoneNumber) {
+          const provs = d.paymentProvider.split(/[,|]/).map((p) => p.trim()).filter(Boolean);
+          const phones = d.phoneNumber.split(/[,|]/).map((p) => p.trim()).filter(Boolean);
+          phones.forEach((phone, idx) => {
+            const prov = provs[idx] || d.paymentProvider || "BKASH";
+            activeMethods.push({
+              provider: prov,
+              paymentNumber: phone,
+              simSlot: idx + 1,
+              status: "AVAILABLE",
+            });
+          });
         }
       }
     }
