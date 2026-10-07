@@ -55,6 +55,12 @@ async function syncDeviceNumbersToSystemSettings(device: any) {
         fallbackPaymentNumbers: fallbacks,
       });
       logger.info({ fallbacks, deviceId: device.deviceId }, "Synchronized listener device payment numbers to system settings");
+      try {
+        const { io } = await import("../../config/socket");
+        if (io) {
+          io.emit("payment_methods_updated", fallbacks);
+        }
+      } catch (_) {}
     }
   } catch (err) {
     logger.warn({ err }, "Could not sync device numbers to system settings");
@@ -531,7 +537,7 @@ export const paymentDeviceService = {
     // Find all devices mapping active providers
     const devices = await PaymentDeviceModel.find({
       status: PaymentDeviceStatus.CONNECTED,
-    });
+    }).sort({ updatedAt: -1 });
 
     const activeMethods: Array<{
       provider: string;
