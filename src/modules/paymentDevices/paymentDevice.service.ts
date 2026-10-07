@@ -594,7 +594,7 @@ export const paymentDeviceService = {
     if (activeMethods.length === 0) {
       const anyDevices = await PaymentDeviceModel.find({
         status: { $in: [PaymentDeviceStatus.CONNECTED, PaymentDeviceStatus.PENDING, PaymentDeviceStatus.OFFLINE] }
-      });
+      }).sort({ updatedAt: -1 });
       for (const d of anyDevices) {
         if (d.sim1PhoneNumber && d.sim1Providers) {
           const provs = d.sim1Providers.split(/[,|]/).map((p) => p.trim()).filter(Boolean);
@@ -639,7 +639,7 @@ export const paymentDeviceService = {
       const { systemSettingsService } = await import("../systemSettings/systemSettings.service");
       const settings = await systemSettingsService.getSettings();
       const fallbacks = settings.fallbackPaymentNumbers;
-      const existingProviders = new Set(activeMethods.map((m) => m.provider.toUpperCase()));
+      const existingProviders = new Set(activeMethods.map((m) => m.provider.toUpperCase().trim()));
 
       if (fallbacks?.bkash && (!existingProviders.has("BKASH") || activeMethods.length === 0)) {
         activeMethods.push({ provider: "BKASH", paymentNumber: fallbacks.bkash, status: "AVAILABLE" });
@@ -655,6 +655,17 @@ export const paymentDeviceService = {
       }
     } catch (_) {}
 
-    return activeMethods;
+    // Deduplicate by provider: keep the first (highest priority) non-empty number
+    const deduped: typeof activeMethods = [];
+    const seen = new Set<string>();
+    for (const m of activeMethods) {
+      const p = m.provider.toUpperCase().trim();
+      if (!seen.has(p) && m.paymentNumber?.trim()) {
+        seen.add(p);
+        deduped.push({ ...m, provider: p, paymentNumber: m.paymentNumber.trim() });
+      }
+    }
+
+    return deduped;
   },
 };

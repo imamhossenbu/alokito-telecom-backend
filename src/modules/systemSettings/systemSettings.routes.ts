@@ -5,6 +5,7 @@ import { adminMiddleware } from "../../middleware/admin.middleware";
 
 const router = Router();
 
+router.get("/", asyncHandler(systemSettingsController.getPublicSettings));
 router.get("/public", asyncHandler(systemSettingsController.getPublicSettings));
 router.get("/admin", adminMiddleware, asyncHandler(systemSettingsController.adminGetSettings));
 router.patch("/admin", adminMiddleware, asyncHandler(systemSettingsController.adminUpdateSettings));
