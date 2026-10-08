@@ -106,7 +106,8 @@ export function createApp(): Application {
     res.sendFile(path.join(process.cwd(), "public", "customer-web", "index.html"));
   });
 
-  // --- APK Download Endpoints (Immediate auto-download on click) ---
+  app.get("/app.apk", (_req, res) => res.redirect(302, "/download/customer"));
+
   app.get("/download/:file", (req, res) => {
     const raw = (req.params.file || "").toLowerCase();
     let target = req.params.file;
@@ -118,7 +119,7 @@ export function createApp(): Application {
       target = "driver-sms-listener.apk";
     } else if (raw === "listener-v7a" || raw === "listener-v7a.apk" || raw === "driver-sms-listener-v7a.apk" || raw === "drive-offer-listener-v7a.apk") {
       target = "driver-sms-listener-v7a.apk";
-    } else if (raw === "customer" || raw === "customer.apk" || raw === "drive-offer-customer" || raw === "drive-offer-customer.apk" || raw === "alokito-customer" || raw === "alokito-customer.apk") {
+    } else if (raw === "customer" || raw === "customer.apk" || raw === "drive-offer-customer" || raw === "drive-offer-customer.apk" || raw === "alokito-customer" || raw === "alokito-customer.apk" || raw === "app.apk") {
       target = "drive-offer-customer.apk";
     } else if (raw === "customer-v7a" || raw === "customer-v7a.apk" || raw === "drive-offer-customer-v7a.apk") {
       target = "drive-offer-customer-v7a.apk";
@@ -126,6 +127,9 @@ export function createApp(): Application {
 
     const filePath = path.join(process.cwd(), "public", "downloads", target);
     if (fs.existsSync(filePath)) {
+      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate, max-age=0");
+      res.setHeader("Pragma", "no-cache");
+      res.setHeader("Expires", "0");
       return res.download(filePath, target);
     }
     return res.status(404).send(`APK file not found: ${target}`);
@@ -374,7 +378,7 @@ export function createApp(): Application {
             <h2>Alokito Telecom - Customer App (গ্রাহক অ্যাপ)</h2>
             <div class="badges">
               <span class="badge green">New & Verified</span>
-              <span class="badge">v1.0.0</span>
+              <span class="badge">v1.0.4</span>
               <span class="badge">Android & Web</span>
             </div>
           </div>
@@ -405,7 +409,7 @@ export function createApp(): Application {
             <h2>Alokito Telecom - Admin App</h2>
             <div class="badges">
               <span class="badge green">Production Ready</span>
-              <span class="badge">v1.0.0</span>
+              <span class="badge">v1.0.3</span>
               <span class="badge">Android & Web</span>
             </div>
           </div>

@@ -28,6 +28,7 @@ import { refundController } from "../refunds/refund.controller";
 import { createRefundBodySchema } from "../refunds/refund.schema";
 import { topUpController } from "../topups/topup.controller";
 import { systemSettingsController } from "../systemSettings/systemSettings.controller";
+import { walletController } from "../wallets/wallet.controller";
 
 const router = Router();
 
@@ -281,6 +282,11 @@ router.post(
   adminMiddleware,
   asyncHandler(orderController.adminCancelOrder),
 );
+router.patch(
+  "/orders/:id",
+  adminMiddleware,
+  asyncHandler(orderController.adminUpdateOrder),
+);
 
 // ── Refund management ─────────────────────────────────
 router.get(
@@ -311,6 +317,21 @@ router.get(
   "/wallet/transactions",
   adminMiddleware,
   asyncHandler(adminController.getWalletTransactions),
+);
+
+router.post(
+  "/wallets/manual-adjust",
+  adminMiddleware,
+  asyncHandler(walletController.adminAdjustBalance),
+);
+
+router.post(
+  "/users/:id/adjust-balance",
+  adminMiddleware,
+  asyncHandler((req, res) => {
+    req.body.userId = req.params.id || req.body.userId;
+    return walletController.adminAdjustBalance(req, res);
+  }),
 );
 
 // ── Admin Profile & Settings ──────────────────────────

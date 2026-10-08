@@ -14,13 +14,19 @@ import { notificationService } from "../notifications/notification.service";
 export const refundService = {
   // ── Admin: Process order refund ──────────────────────
   async adminRefundOrder(orderId: string, reason: string, adminId: string) {
-    const order = await OrderModel.findById(orderId);
+    const isObjectId = Types.ObjectId.isValid(orderId);
+    const order = await OrderModel.findOne({
+      $or: [
+        ...(isObjectId ? [{ _id: new Types.ObjectId(orderId) }] : []),
+        { orderNumber: orderId.toString() },
+      ],
+    });
     if (!order) {
       throw new NotFoundError("ORDER_NOT_FOUND", "Order not found");
     }
 
     // Check if refund already exists (idempotency - spec 115, 126)
-    const existing = await refundRepository.findByOrderId(orderId);
+    const existing = await refundRepository.findByOrderId(order._id);
     if (existing) {
       if (existing.status === RefundStatus.REFUNDED) {
         return existing; // Idempotent return of completed refund

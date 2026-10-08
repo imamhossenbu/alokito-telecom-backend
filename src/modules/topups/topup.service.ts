@@ -11,7 +11,7 @@ import { env } from "../../config/env";
 import { auditLogService } from "../auditLogs/auditLog.service";
 import { ActorType } from "../auditLogs/auditLog.model";
 import { notificationService } from "../notifications/notification.service";
-
+import { logger } from "../../config/logger";
 
 export const topUpService = {
   // ── Customer: Create Top-up request ───────────────────
@@ -110,34 +110,40 @@ export const topUpService = {
       }
     } catch (_) {}
 
-    // Define acceptable receipt time window tolerances
-    const toleranceMs = env.PAYMENT_VERIFICATION_TOLERANCE_MINUTES * 60 * 1000;
-    const windowMs = env.PAYMENT_VERIFICATION_WINDOW_MINUTES * 60 * 1000;
-    const minReceivedAt = new Date(topUp.createdAt.getTime() - toleranceMs);
-    const maxReceivedAt = new Date(topUp.createdAt.getTime() + windowMs);
+    // In Bangladesh, TrxID is unique per provider.
+    // Check for UNUSED SMS event within a generous 72-hour window.
+    const windowMs = 72 * 60 * 60 * 1000;
+    const minReceivedAt = new Date(Date.now() - windowMs);
 
-    // Search for matching SMS event evidence
     const matchEvent = await PaymentSmsEventModel.findOne({
       provider: topUp.paymentProvider,
       transactionId: cleanTxId,
       amount: topUp.amount, // Exactly matches poisha
       verificationStatus: SmsEventVerificationStatus.UNUSED,
-      receivedAt: { $gte: minReceivedAt, $lte: maxReceivedAt },
+      receivedAt: { $gte: minReceivedAt },
     });
 
     if (!matchEvent) {
-      // Mark top-up status as VERIFYING (customer submitted but matching SMS hasn't arrived/matched yet)
+      // Mark top-up status as VERIFYING (customer submitted, waiting for SMS listener)
       topUp.status = TopUpStatus.VERIFYING;
       topUp.customerTransactionId = cleanTxId;
       await topUp.save();
 
-      throw new NotFoundError(
-        "PAYMENT_NOT_FOUND",
-        "No matching payment transaction found. Please ensure you sent the correct amount and try again in a few moments."
-      );
+      return {
+        success: true,
+        status: "VERIFYING",
+        message: "আপনার ট্রানজ্যাকশন আইডি জমা হয়েছে। এসএমএস আসার সাথে সাথে স্বয়ংক্রিয়ভাবে ব্যালেন্স যোগ হয়ে যাবে।",
+      };
     }
 
-    // Run atomic credit
+    return await this.executeAtomicTopUpCredit(topUp, matchEvent);
+  },
+
+  // ── Core atomic credit execution ──────────────────────
+  async executeAtomicTopUpCredit(topUp: any, matchEvent: any) {
+    const userId = topUp.userId.toString();
+    const cleanTxId = (topUp.customerTransactionId || matchEvent.transactionId).trim().toUpperCase();
+
     const mongoSession = await mongoose.startSession();
     try {
       let finalBalance = 0;
@@ -155,9 +161,9 @@ export const topUpService = {
         }
 
         // Get customer wallet
-        const wallet = await walletRepository.findByUserId(userId, mongoSession);
+        let wallet = await walletRepository.findByUserId(userId, mongoSession);
         if (!wallet) {
-          throw new NotFoundError("WALLET_NOT_FOUND", "Wallet not found for customer");
+          wallet = await walletRepository.createForUser(new Types.ObjectId(userId), mongoSession);
         }
 
         const balanceBefore = wallet.balance;
@@ -225,6 +231,7 @@ export const topUpService = {
 
       return {
         success: true,
+        status: "VERIFIED",
         walletBalance: poishaToBdt(finalBalance),
       };
     } finally {
@@ -232,8 +239,45 @@ export const topUpService = {
     }
   },
 
+  // ── Auto-match newly ingested SMS with waiting top-up ──
+  async autoMatchPendingTopUp(smsEvent: any) {
+    try {
+      const cleanTxId = smsEvent.transactionId.trim().toUpperCase();
+      // Look for any PENDING or VERIFYING top-up with matching provider, transactionId, and amount
+      const pendingTopUp = await TopUpModel.findOne({
+        paymentProvider: smsEvent.provider,
+        customerTransactionId: cleanTxId,
+        amount: smsEvent.amount,
+        status: { $in: [TopUpStatus.PENDING, TopUpStatus.VERIFYING] },
+      });
+
+      if (!pendingTopUp) {
+        return null;
+      }
+
+      logger.info(
+        { topUpId: pendingTopUp._id, smsEventId: smsEvent._id, txId: cleanTxId },
+        "Auto-matching pending top-up with newly ingested SMS"
+      );
+
+      return await this.executeAtomicTopUpCredit(pendingTopUp, smsEvent);
+    } catch (err) {
+      logger.error({ err, smsEventId: smsEvent._id }, "Error during auto-match of pending top-up");
+      return null;
+    }
+  },
+
   async getTopUps(userId: string, page = 1, limit = 20) {
-    return topUpRepository.findAll(userId, page, limit);
+    const res = await topUpRepository.findAll(userId, page, limit);
+    const docs = res.docs.map((doc: any) => {
+      const obj = doc.toObject ? doc.toObject() : doc;
+      return {
+        ...obj,
+        id: obj._id?.toString() ?? obj.id,
+        amountBdt: poishaToBdt(obj.amount),
+      };
+    });
+    return { ...res, docs };
   },
 
   async getTopUpById(userId: string, id: string) {
@@ -244,7 +288,12 @@ export const topUpService = {
     if (topUp.userId.toString() !== userId) {
       throw new AppError("UNAUTHORIZED", "You do not own this topup", 401);
     }
-    return topUp;
+    const obj = (topUp as any).toObject ? (topUp as any).toObject() : topUp;
+    return {
+      ...obj,
+      id: obj._id?.toString() ?? obj.id,
+      amountBdt: poishaToBdt(obj.amount),
+    };
   },
 
   // ── Admin Top-Up Manual Approval Methods ──
@@ -259,7 +308,15 @@ export const topUpService = {
         .limit(limit),
       TopUpModel.countDocuments(filter),
     ]);
-    return { docs, total, page, limit };
+    const formattedDocs = docs.map((doc: any) => {
+      const obj = doc.toObject ? doc.toObject() : doc;
+      return {
+        ...obj,
+        id: obj._id?.toString() ?? obj.id,
+        amountBdt: poishaToBdt(obj.amount),
+      };
+    });
+    return { docs: formattedDocs, total, page, limit };
   },
 
   async adminApproveTopUp(adminId: string, topUpId: string, adminNote?: string) {

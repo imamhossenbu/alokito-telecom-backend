@@ -7,6 +7,7 @@ const router = Router();
 
 router.get("/", asyncHandler(systemSettingsController.getPublicSettings));
 router.get("/public", asyncHandler(systemSettingsController.getPublicSettings));
+router.get("/app-version", asyncHandler(systemSettingsController.getAppVersion));
 router.get("/admin", adminMiddleware, asyncHandler(systemSettingsController.adminGetSettings));
 router.patch("/admin", adminMiddleware, asyncHandler(systemSettingsController.adminUpdateSettings));
 

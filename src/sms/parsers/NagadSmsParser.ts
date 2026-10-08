@@ -41,13 +41,16 @@ export class NagadSmsParser implements SmsParser {
       const parts = timeMatch[1].split(/\s+/);
       const dateParts = parts[0].split("/");
       const timeParts = parts[1].split(":");
-      receivedAt = new Date(
-        parseInt(dateParts[2], 10),
-        parseInt(dateParts[1], 10) - 1,
-        parseInt(dateParts[0], 10),
-        parseInt(timeParts[0], 10),
-        parseInt(timeParts[1], 10)
-      );
+      // DD/MM/YYYY HH:MM BST (+06:00)
+      const day = dateParts[0].padStart(2, "0");
+      const month = dateParts[1].padStart(2, "0");
+      const year = dateParts[2];
+      const hours = timeParts[0].padStart(2, "0");
+      const mins = timeParts[1].padStart(2, "0");
+      const parsed = new Date(`${year}-${month}-${day}T${hours}:${mins}:00+06:00`);
+      if (!isNaN(parsed.getTime())) {
+        receivedAt = parsed;
+      }
     }
 
     return {

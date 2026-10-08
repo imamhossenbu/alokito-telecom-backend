@@ -24,7 +24,91 @@ export class SystemSettingsService {
           upay: "01890000001",
         },
         manualVerificationNote: "ম্যানুয়াল ভেরিফিকেশন মোড সক্রিয় রয়েছে। আপনার পেমেন্ট ট্রানজ্যাকশন এডমিন রিভিউ সাপেক্ষে দ্রুত ব্যালেন্স যুক্ত হবে।",
+        appVersion: {
+          customer: {
+            latestVersion: "1.0.4",
+            buildNumber: 5,
+            downloadUrl: "https://alokito-telecom-backend-1.onrender.com/download/customer",
+            forceUpdate: false,
+            releaseNotes: "নতুন ড্রাইভ অফার, ব্যালেন্স অটো-ভেরিফিকেশন ও স্বয়ংক্রিয় অ্যাপ আপডেট সুবিধা।",
+          },
+          admin: {
+            latestVersion: "1.0.3",
+            buildNumber: 4,
+            downloadUrl: "https://alokito-telecom-backend-1.onrender.com/download/admin",
+            forceUpdate: false,
+            releaseNotes: "অ্যাডমিন রিয়েলটাইম নোটিফিকেশন অ্যালার্ট ও অর্ডার প্রসেসিং আপডেট।",
+          },
+        },
       });
+    } else {
+      let needSave = false;
+      if (!settings.appVersion) {
+        settings.appVersion = {
+          customer: {
+            latestVersion: "1.0.4",
+            buildNumber: 5,
+            downloadUrl: "https://alokito-telecom-backend-1.onrender.com/download/customer",
+            forceUpdate: false,
+            releaseNotes: "নতুন ড্রাইভ অফার, ব্যালেন্স অটো-ভেরিফিকেশন ও স্বয়ংক্রিয় অ্যাপ আপডেট সুবিধা।",
+          },
+          admin: {
+            latestVersion: "1.0.3",
+            buildNumber: 4,
+            downloadUrl: "https://alokito-telecom-backend-1.onrender.com/download/admin",
+            forceUpdate: false,
+            releaseNotes: "অ্যাডমিন রিয়েলটাইম নোটিফিকেশন অ্যালার্ট ও অর্ডার প্রসেসিং আপডেট।",
+          },
+        };
+        needSave = true;
+      } else {
+        if (!settings.appVersion.customer) {
+          settings.appVersion.customer = {
+            latestVersion: "1.0.4",
+            buildNumber: 5,
+            downloadUrl: "https://alokito-telecom-backend-1.onrender.com/download/customer",
+            forceUpdate: false,
+            releaseNotes: "নতুন ড্রাইভ অফার, ব্যালেন্স অটো-ভেরিফিকেশন ও স্বয়ংক্রিয় অ্যাপ আপডেট সুবিধা।",
+          };
+          needSave = true;
+        } else {
+          if (!settings.appVersion.customer.downloadUrl) {
+            settings.appVersion.customer.downloadUrl = "https://alokito-telecom-backend-1.onrender.com/download/customer";
+            needSave = true;
+          }
+          if ((settings.appVersion.customer.buildNumber || 0) < 5) {
+            settings.appVersion.customer.buildNumber = 5;
+            settings.appVersion.customer.latestVersion = "1.0.4";
+            needSave = true;
+          }
+        }
+
+        if (!settings.appVersion.admin) {
+          settings.appVersion.admin = {
+            latestVersion: "1.0.3",
+            buildNumber: 4,
+            downloadUrl: "https://alokito-telecom-backend-1.onrender.com/download/admin",
+            forceUpdate: false,
+            releaseNotes: "অ্যাডমিন রিয়েলটাইম নোটিফিকেশন অ্যালার্ট ও অর্ডার প্রসেসিং আপডেট।",
+          };
+          needSave = true;
+        } else {
+          if (!settings.appVersion.admin.downloadUrl) {
+            settings.appVersion.admin.downloadUrl = "https://alokito-telecom-backend-1.onrender.com/download/admin";
+            needSave = true;
+          }
+          if ((settings.appVersion.admin.buildNumber || 0) < 4) {
+            settings.appVersion.admin.buildNumber = 4;
+            settings.appVersion.admin.latestVersion = "1.0.3";
+            needSave = true;
+          }
+        }
+      }
+
+      if (needSave) {
+        settings.markModified("appVersion");
+        await settings.save().catch(() => {});
+      }
     }
     return settings;
   }
@@ -88,6 +172,42 @@ export class SystemSettingsService {
     }
     if (data.prayerTimesDistrict !== undefined) {
       settings.prayerTimesDistrict = data.prayerTimesDistrict;
+    }
+    if ((data as any).serviceStatus) {
+      const incoming = (data as any).serviceStatus;
+      settings.serviceStatus = {
+        prayerBreak: {
+          ...settings.serviceStatus?.prayerBreak,
+          ...(incoming.prayerBreak || {}),
+        },
+        nightBreak: {
+          ...settings.serviceStatus?.nightBreak,
+          ...(incoming.nightBreak || {}),
+        },
+        offersClosed: {
+          ...settings.serviceStatus?.offersClosed,
+          ...(incoming.offersClosed || {}),
+        },
+        noticeBanner: {
+          ...settings.serviceStatus?.noticeBanner,
+          ...(incoming.noticeBanner || {}),
+        },
+      };
+      settings.markModified("serviceStatus");
+    }
+    if ((data as any).appVersion) {
+      const incoming = (data as any).appVersion;
+      settings.appVersion = {
+        customer: {
+          ...settings.appVersion?.customer,
+          ...(incoming.customer || {}),
+        },
+        admin: {
+          ...settings.appVersion?.admin,
+          ...(incoming.admin || {}),
+        },
+      };
+      settings.markModified("appVersion");
     }
 
     await settings.save();

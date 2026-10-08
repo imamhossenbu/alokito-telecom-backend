@@ -17,6 +17,7 @@ import { buildPaginationMeta } from "../../shared/pagination/paginate";
 import { pinResetEmailTemplate } from "../../integrations/email/templates";
 import { queueEmail } from "../../jobs/email.job";
 import { logger } from "../../config/logger";
+import { poishaToBdt } from "../../shared/utils/money";
 import type {
   ListUsersQuery,
   AdminCreateCustomerBody,
@@ -66,7 +67,39 @@ export const adminUserService = {
   async getById(id: string) {
     const user = await userRepository.findById(id);
     if (!user) throw new NotFoundError("USER_NOT_FOUND", "User not found");
-    return serializeUserSummary(user);
+
+    const [identity, wallet, ordersCount] = await Promise.all([
+      identityRepository.findByUserId(user._id),
+      walletRepository.findByUserId(user._id),
+      (async () => {
+        try {
+          const { OrderModel } = await import("../orders/order.model");
+          return await OrderModel.countDocuments({ userId: user._id });
+        } catch (_) {
+          return 0;
+        }
+      })(),
+    ]);
+
+    const base = serializeUserSummary(user);
+    return {
+      ...base,
+      nidNumber: identity?.nidNumber || "",
+      dateOfBirth: identity?.dateOfBirth ? identity.dateOfBirth.toISOString().split("T")[0] : "",
+      address: user.address || identity?.address || "",
+      division: (user as any).division || (identity as any)?.division || "",
+      district: user.district || (identity as any)?.district || "",
+      upazila: (user as any).upazila || (identity as any)?.upazila || "",
+      union: (user as any).union || (identity as any)?.union || "",
+      postCode: (user as any).postCode || (identity as any)?.postCode || "",
+      wallet: {
+        balance: wallet ? wallet.balance : 0,
+        balanceBdt: wallet ? poishaToBdt(wallet.balance) : 0,
+        currency: wallet?.currency || "BDT",
+        status: wallet?.status || "ACTIVE",
+      },
+      ordersCount,
+    };
   },
 
   /** Admin-created customer (spec sections 11, 113) — same temp-PIN pattern as customer-created-customer. */

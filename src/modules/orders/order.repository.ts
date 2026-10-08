@@ -4,7 +4,13 @@ import { generateReferenceId, IdPrefix } from "../../shared/utils/id-generator";
 
 export const orderRepository = {
   findById(id: string | Types.ObjectId) {
-    return OrderModel.findById(id).populate("userId").populate("operatorId");
+    const isObjectId = Types.ObjectId.isValid(id);
+    return OrderModel.findOne({
+      $or: [
+        ...(isObjectId ? [{ _id: new Types.ObjectId(id) }] : []),
+        { orderNumber: id.toString() },
+      ],
+    }).populate("userId").populate("operatorId");
   },
 
   findByOrderNumber(orderNumber: string) {

@@ -365,11 +365,25 @@ export const paymentDeviceService = {
         verificationStatus: SmsEventVerificationStatus.UNUSED,
       });
 
+      // Automatically attempt matching with any waiting/verifying customer top-up request
+      try {
+        const { topUpService } = await import("../topups/topup.service");
+        await topUpService.autoMatchPendingTopUp(event);
+      } catch (matchErr) {
+        logger.warn({ matchErr, eventId: event._id }, "Failed to auto-match pending topup on SMS ingestion");
+      }
+
       return { success: true, eventId: event._id.toString() };
     } catch (err: any) {
       if (err.code === 11000) {
         // Duplicate key, SMS already ingested — treat as success (idempotence)
         const existing = await PaymentSmsEventModel.findOne({ smsFingerprint });
+        if (existing) {
+          try {
+            const { topUpService } = await import("../topups/topup.service");
+            await topUpService.autoMatchPendingTopUp(existing);
+          } catch (_) {}
+        }
         return { success: true, eventId: existing?._id.toString(), duplicate: true };
       }
       throw err;

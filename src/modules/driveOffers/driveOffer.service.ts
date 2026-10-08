@@ -85,6 +85,18 @@ export const driveOfferService = {
       userAgent: actor.userAgent,
     });
 
+    // Broadcast notification to all customers
+    try {
+      const { notificationService } = await import("../notifications/notification.service");
+      await notificationService.broadcastToAllCustomers({
+        type: "NEW_OFFER",
+        title: `🔥 নতুন ড্রাইভ অফার: ${offer.offerName}`,
+        message: `${operator.name || operator.code} - মাত্র ৳${data.sellingPrice} টাকায় (${offer.offerValue || offer.validity})! এখনই অর্ডার করুন।`,
+        referenceType: "DriveOffer",
+        referenceId: offer._id,
+      });
+    } catch (_) {}
+
     return offer;
   },
 

@@ -98,4 +98,12 @@ export const orderController = {
     const order = await orderService.adminCancelOrder(req.params.id, req.actor.adminId);
     sendSuccess(res, { data: order });
   },
+
+  async adminUpdateOrder(req: Request, res: Response) {
+    if (!req.actor || req.actor.type !== "ADMIN") {
+      throw new UnauthorizedError();
+    }
+    const order = await orderService.adminUpdateOrder(req.params.id, req.body, req.actor.adminId);
+    sendSuccess(res, { data: order });
+  },
 };

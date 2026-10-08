@@ -21,6 +21,7 @@ import { temporaryPinEmailTemplate } from "../../integrations/email/templates";
 import { env } from "../../config/env";
 import { logger } from "../../config/logger";
 import { TrustedDeviceModel } from "../auth/trustedDevice.model";
+import { poishaToBdt } from "../../shared/utils/money";
 import type { UpdateProfileBody, CreateCustomerBody } from "./user.schema";
 import type { ChangePinBody } from "../auth/auth.schema";
 
@@ -65,7 +66,22 @@ export const userService = {
   async getMe(userId: string) {
     const user = await userRepository.findById(userId);
     if (!user) throw new NotFoundError("USER_NOT_FOUND", "User not found");
-    return serializeUser(user);
+    let wallet = await walletRepository.findByUserId(user._id);
+    if (!wallet) {
+      wallet = await walletRepository.createForUser(user._id);
+    }
+    const serialized = serializeUser(user);
+    return {
+      ...serialized,
+      user: serialized,
+      wallet: {
+        id: wallet._id.toString(),
+        balance: wallet.balance,
+        balanceBdt: poishaToBdt(wallet.balance),
+        currency: wallet.currency,
+        status: wallet.status,
+      },
+    };
   },
 
   async updateMe(userId: string, body: UpdateProfileBody) {

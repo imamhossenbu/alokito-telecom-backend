@@ -30,4 +30,19 @@ export const walletController = {
     const tx = await walletService.getTransactionById(userId, req.params.id);
     sendSuccess(res, { data: tx });
   },
+
+  async adminAdjustBalance(req: Request, res: Response) {
+    if (!req.actor || req.actor.type !== "ADMIN") {
+      throw new UnauthorizedError();
+    }
+    const { userId, amount, action, reason } = req.body;
+    const result = await walletService.adminAdjustBalance({
+      userId,
+      amountBdt: parseFloat(amount),
+      action: action === "DEBIT" ? "DEBIT" : "CREDIT",
+      reason: reason || "Manual Admin Adjustment",
+      adminId: req.actor.adminId,
+    });
+    sendSuccess(res, { data: result });
+  },
 };

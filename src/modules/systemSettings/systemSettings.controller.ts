@@ -11,8 +11,23 @@ export const systemSettingsController = {
         verificationMode: settings.verificationMode,
         fallbackPaymentNumbers: settings.fallbackPaymentNumbers,
         manualVerificationNote: settings.manualVerificationNote,
+        serviceStatus: settings.serviceStatus,
+        appVersion: settings.appVersion,
       },
     });
+  },
+
+  async getAppVersion(req: Request, res: Response) {
+    const appType = (req.query.app as string)?.toLowerCase() === "admin" ? "admin" : "customer";
+    const settings = await systemSettingsService.getSettings();
+    const versionData = settings.appVersion?.[appType] || {
+      latestVersion: "1.0.3",
+      buildNumber: 4,
+      downloadUrl: "",
+      forceUpdate: false,
+      releaseNotes: "নতুন সংস্করণ আপডেট।",
+    };
+    sendSuccess(res, { data: versionData });
   },
 
   async adminGetSettings(req: Request, res: Response) {

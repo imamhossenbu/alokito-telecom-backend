@@ -83,6 +83,18 @@ export const offerService = {
       userAgent: actor.userAgent,
     });
 
+    // Broadcast notification to all customers
+    try {
+      const { notificationService } = await import("../notifications/notification.service");
+      await notificationService.broadcastToAllCustomers({
+        type: "NEW_OFFER",
+        title: `🎉 নতুন অফার: ${offer.name}`,
+        message: `${operator.name || operator.code} - মাত্র ৳${data.sellingPrice} টাকায় (${offer.offerValue || offer.validity})!`,
+        referenceType: "Offer",
+        referenceId: offer._id,
+      });
+    } catch (_) {}
+
     return offer;
   },
 

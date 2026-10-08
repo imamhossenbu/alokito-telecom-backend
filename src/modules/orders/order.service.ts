@@ -9,7 +9,7 @@ import { walletRepository } from "../wallets/wallet.repository";
 import { walletTransactionRepository } from "../walletTransactions/walletTransaction.repository";
 import { ORDER_STATE_TRANSITIONS, OrderStatus, OrderStatusType } from "../../shared/enums";
 import { AppError, NotFoundError, ConflictError, ForbiddenError } from "../../shared/errors/app-error";
-import { poishaToBdt } from "../../shared/utils/money";
+import { poishaToBdt, bdtToPoisha } from "../../shared/utils/money";
 import { auditLogService } from "../auditLogs/auditLog.service";
 import { ActorType } from "../auditLogs/auditLog.model";
 import { notificationService } from "../notifications/notification.service";
@@ -122,7 +122,11 @@ export const orderService = {
             balanceAfter,
             referenceType: "ORDER",
             referenceId: order._id,
-            description: `Purchased offer: ${offer.name || offer.offerName}`,
+            description: `Purchased offer: ${offer.name || offer.offerName} (${phone})`,
+            metadata: {
+              recipientPhone: phone,
+              offerName: offer.name || offer.offerName,
+            },
           },
           mongoSession
         );
@@ -411,6 +415,70 @@ export const orderService = {
     if (!order) {
       throw new NotFoundError("ORDER_NOT_FOUND", "Order not found");
     }
+    return order;
+  },
+
+  async adminUpdateOrder(
+    orderId: string,
+    data: {
+      userPhone?: string;
+      price?: number;
+      orderStatus?: string;
+      notes?: string;
+      failureReason?: string;
+      refundReason?: string;
+    },
+    adminId: string
+  ) {
+    const order = await orderRepository.findById(orderId);
+    if (!order) {
+      throw new NotFoundError("ORDER_NOT_FOUND", "Order not found");
+    }
+
+    if (data.userPhone) {
+      order.userPhone = data.userPhone.trim();
+    }
+    if (data.price !== undefined) {
+      const p = Number(data.price);
+      order.price = p < 10000 ? bdtToPoisha(p) : p;
+    }
+    if (data.notes !== undefined) {
+      (order as any).notes = data.notes;
+    }
+    if (data.failureReason !== undefined) {
+      order.failureReason = data.failureReason;
+    }
+    if (data.refundReason !== undefined) {
+      order.refundReason = data.refundReason;
+    }
+    if (data.orderStatus) {
+      const targetStatus = data.orderStatus.toUpperCase();
+      if (Object.values(OrderStatus).includes(targetStatus as any)) {
+        order.orderStatus = targetStatus as any;
+        if (targetStatus === OrderStatus.COMPLETED) {
+          order.activationStatus = ActivationStatus.COMPLETED;
+          order.completedAt = new Date();
+        } else if (targetStatus === OrderStatus.PROCESSING) {
+          order.activationStatus = ActivationStatus.PROCESSING;
+          order.activationProcessedBy = new Types.ObjectId(adminId);
+          order.activationProcessedAt = new Date();
+        } else if (targetStatus === OrderStatus.FAILED) {
+          order.activationStatus = ActivationStatus.FAILED;
+        }
+      }
+    }
+
+    await order.save();
+
+    await auditLogService.log({
+      actorType: ActorType.ADMIN,
+      actorId: adminId,
+      action: "ADMIN_ORDER_UPDATED",
+      entityType: "Order",
+      entityId: order._id,
+      metadata: { orderNumber: order.orderNumber, updates: data },
+    });
+
     return order;
   },
 };

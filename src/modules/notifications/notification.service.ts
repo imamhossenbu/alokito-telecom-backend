@@ -31,6 +31,43 @@ export const notificationService = {
     return notification;
   },
 
+  async broadcastToAllCustomers(data: {
+    type: string;
+    title: string;
+    message: string;
+    referenceType?: string;
+    referenceId?: Types.ObjectId;
+  }) {
+    try {
+      const { UserModel } = await import("../users/user.model");
+      const users = await UserModel.find({ accountStatus: { $ne: "DELETED" } }).select("_id");
+      if (users.length > 0) {
+        const notifications = users.map((u) => ({
+          userId: u._id,
+          type: data.type,
+          title: data.title,
+          message: data.message,
+          referenceType: data.referenceType,
+          referenceId: data.referenceId,
+          isRead: false,
+        }));
+        await NotificationModel.insertMany(notifications, { ordered: false }).catch(() => {});
+      }
+      const { io } = await import("../../config/socket");
+      if (io) {
+        io.emit("new_offer_notification", {
+          type: data.type,
+          title: data.title,
+          message: data.message,
+          referenceId: data.referenceId?.toString(),
+          createdAt: new Date(),
+        });
+      }
+    } catch (err) {
+      logger.warn({ err }, "Failed to broadcast notification to all customers");
+    }
+  },
+
   async getNotifications(userId: string, page = 1, limit = 20) {
     const filter = { userId: new Types.ObjectId(userId) };
     const total = await NotificationModel.countDocuments(filter);

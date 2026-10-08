@@ -36,4 +36,13 @@ export const walletRepository = {
     );
     return result.modifiedCount > 0;
   },
+
+  async adminDebitBalance(userId: Types.ObjectId, amount: number, session?: ClientSession) {
+    const result = await WalletModel.updateOne(
+      { userId, status: "ACTIVE", balance: { $gte: amount } },
+      { $inc: { balance: -amount, version: 1 } },
+      { session }
+    );
+    return result.modifiedCount > 0;
+  },
 };
