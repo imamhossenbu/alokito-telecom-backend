@@ -15,7 +15,13 @@ import { logger } from "../../config/logger";
 
 export const topUpService = {
   // ── Customer: Create Top-up request ───────────────────
-  async createTopUp(userId: string, provider: string, amountBdt: number) {
+  async createTopUp(
+    userId: string,
+    provider: string,
+    amountBdt: number,
+    transactionId?: string,
+    senderPhone?: string
+  ) {
     // 1. Find active connected payment device for the requested provider
     const threshold = Date.now() - env.DEVICE_HEARTBEAT_TIMEOUT_SECONDS * 1000;
     const device = await PaymentDeviceModel.findOne({
@@ -39,10 +45,106 @@ export const topUpService = {
 
     const amount = bdtToPoisha(amountBdt);
 
+    // If transactionId is supplied, handle atomic verification & prevent duplicates:
+    if (transactionId && transactionId.trim().length > 0) {
+      const cleanTxId = transactionId.trim().toUpperCase();
+
+      // Check if already successfully verified anywhere
+      const alreadyUsed = await topUpRepository.existsByTransactionId(provider.toUpperCase(), cleanTxId);
+      if (alreadyUsed) {
+        throw new ConflictError(
+          "PAYMENT_TRANSACTION_ALREADY_USED",
+          "এই Transaction ID টি ইতিমধ্যে ব্যবহার করা হয়েছে"
+        );
+      }
+
+      // Check if there is an active/pending request with the same TrxID (prevent double submission)
+      const existingActive = await TopUpModel.findOne({
+        paymentProvider: provider.toUpperCase(),
+        customerTransactionId: cleanTxId,
+        status: { $in: [TopUpStatus.PENDING, TopUpStatus.VERIFYING] },
+      });
+      if (existingActive) {
+        throw new ConflictError(
+          "IDEMPOTENCY_CONFLICT",
+          "এই Transaction ID দিয়ে ইতিমধ্যে একটি রিকোয়েস্ট জমা দেওয়া হয়েছে। দয়া করে অপেক্ষা করুন।"
+        );
+      }
+
+      // Check manual verification mode
+      let isManual = false;
+      try {
+        const { systemSettingsService } = await import("../systemSettings/systemSettings.service");
+        isManual = await systemSettingsService.isManualVerification();
+      } catch (_) {}
+
+      // Create TopUp document with TrxID and senderPhone already attached
+      const topUp = await topUpRepository.create({
+        userId: new Types.ObjectId(userId),
+        paymentProvider: provider.toUpperCase(),
+        paymentNumber,
+        senderPhone: senderPhone?.trim() || undefined,
+        amount,
+        customerTransactionId: cleanTxId,
+        status: TopUpStatus.VERIFYING,
+        verificationStatus: "PENDING",
+        submittedAt: new Date(),
+      });
+
+      if (!isManual) {
+        // Look for matching SMS event received in last 72 hours
+        const windowMs = 72 * 60 * 60 * 1000;
+        const minReceivedAt = new Date(Date.now() - windowMs);
+        const matchEvent = await PaymentSmsEventModel.findOne({
+          provider: provider.toUpperCase(),
+          transactionId: cleanTxId,
+          amount,
+          verificationStatus: SmsEventVerificationStatus.UNUSED,
+          receivedAt: { $gte: minReceivedAt },
+        });
+
+        if (matchEvent) {
+          const creditRes = await this.executeAtomicTopUpCredit(topUp, matchEvent);
+          return {
+            topUpId: topUp._id.toString(),
+            topUpNumber: topUp.topUpNumber,
+            provider: topUp.paymentProvider,
+            paymentNumber: topUp.paymentNumber,
+            senderPhone: topUp.senderPhone,
+            transactionId: topUp.customerTransactionId,
+            amount: poishaToBdt(topUp.amount),
+            status: TopUpStatus.VERIFIED,
+            verificationStatus: "VERIFIED",
+            isImmediatelyVerified: true,
+            createdAt: topUp.createdAt,
+            walletBalance: creditRes.walletBalance,
+            message: "ব্যালেন্স সফলভাবে যোগ হয়েছে!",
+          };
+        }
+      }
+
+      return {
+        topUpId: topUp._id.toString(),
+        topUpNumber: topUp.topUpNumber,
+        provider: topUp.paymentProvider,
+        paymentNumber: topUp.paymentNumber,
+        senderPhone: topUp.senderPhone,
+        transactionId: topUp.customerTransactionId,
+        amount: poishaToBdt(topUp.amount),
+        status: TopUpStatus.VERIFYING,
+        verificationStatus: "PENDING",
+        isImmediatelyVerified: false,
+        createdAt: topUp.createdAt,
+        message: "আপনার ট্রানজ্যাকশন আইডি জমা হয়েছে। স্বয়ংক্রিয়ভাবে ভেরিফাই হচ্ছে।",
+      };
+    }
+
+    // Fallback: If no transactionId supplied
     const topUp = await topUpRepository.create({
       userId: new Types.ObjectId(userId),
       paymentProvider: provider.toUpperCase(),
       paymentNumber,
+      senderPhone: senderPhone?.trim() || undefined,
       amount,
       status: TopUpStatus.PENDING,
       verificationStatus: "PENDING",
@@ -54,8 +156,10 @@ export const topUpService = {
       topUpNumber: topUp.topUpNumber,
       provider: topUp.paymentProvider,
       paymentNumber: topUp.paymentNumber,
-      amount: poishaToBdt(topUp.amount), // Return BDT to customer
+      senderPhone: topUp.senderPhone,
+      amount: poishaToBdt(topUp.amount),
       status: topUp.status,
+      isImmediatelyVerified: false,
     };
   },
 
@@ -267,16 +371,28 @@ export const topUpService = {
     }
   },
 
-  async getTopUps(userId: string, page = 1, limit = 20) {
+  async getTopUps(userId: string, page = 1, limit = 50) {
     const res = await topUpRepository.findAll(userId, page, limit);
-    const docs = res.docs.map((doc: any) => {
-      const obj = doc.toObject ? doc.toObject() : doc;
-      return {
-        ...obj,
-        id: obj._id?.toString() ?? obj.id,
-        amountBdt: poishaToBdt(obj.amount),
-      };
-    });
+    const docs = res.docs
+      // Filter out any abandoned legacy records without customerTransactionId
+      .filter((doc: any) => {
+        const tx = doc.customerTransactionId;
+        return tx && typeof tx === "string" && tx.trim().length > 0;
+      })
+      .map((doc: any) => {
+        const obj = doc.toObject ? doc.toObject() : doc;
+        const txId = (obj.customerTransactionId || "").trim();
+        return {
+          ...obj,
+          id: obj._id?.toString() ?? obj.id,
+          topUpNumber: obj.topUpNumber || "",
+          amountBdt: poishaToBdt(obj.amount),
+          customerTransactionId: txId,
+          transactionId: txId,
+          paymentNumber: obj.paymentNumber || "",
+          senderPhone: obj.senderPhone || "",
+        };
+      });
     return { ...res, docs };
   },
 

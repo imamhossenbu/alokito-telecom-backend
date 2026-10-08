@@ -15,7 +15,13 @@ export const topUpController = {
   async createTopUp(req: Request, res: Response) {
     const userId = getActorUserId(req);
     const body = createTopUpBodySchema.parse(req.body);
-    const topUp = await topUpService.createTopUp(userId, body.provider, body.amount);
+    const topUp = await topUpService.createTopUp(
+      userId,
+      body.provider,
+      body.amount,
+      body.transactionId,
+      body.senderPhone
+    );
     sendCreated(res, { data: topUp });
   },
 

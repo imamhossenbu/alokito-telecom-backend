@@ -13,6 +13,7 @@ export const PaymentProvider = {
   BKASH: "BKASH",
   NAGAD: "NAGAD",
   ROCKET: "ROCKET",
+  UPAY: "UPAY",
   OTHER: "OTHER",
 } as const;
 export type PaymentProviderType =

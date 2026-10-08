@@ -17,6 +17,7 @@ export interface TopUpDocument extends Document {
   paymentDeviceId?: Types.ObjectId;
   paymentProvider: string;
   paymentNumber: string;
+  senderPhone?: string;
   /** Integer poisha */
   amount: number;
   customerTransactionId?: string;
@@ -39,6 +40,7 @@ const topUpSchema = new Schema<TopUpDocument>(
     paymentDeviceId: { type: Schema.Types.ObjectId, ref: "PaymentDevice" },
     paymentProvider: { type: String, enum: Object.values(PaymentProvider), required: true },
     paymentNumber: { type: String, required: true },
+    senderPhone: { type: String },
     amount: { type: Number, required: true, min: 0 },
     customerTransactionId: { type: String },
     status: {
