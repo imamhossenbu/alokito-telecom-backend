@@ -370,10 +370,64 @@ export const topUpService = {
         });
       } catch (_) {}
 
+      // Send Telegram Bot notification if configured
+      let customerPhone: string | undefined;
+      try {
+        const { systemSettingsService } = await import("../systemSettings/systemSettings.service");
+        const { UserModel } = await import("../users/user.model");
+        const customer = await UserModel.findById(userId).select("phone");
+        customerPhone = customer?.phone;
+
+        const settings = await systemSettingsService.getSettings();
+        const botToken =
+          settings.smsIntegration?.telegramBotToken ||
+          process.env.TELEGRAM_BOT_TOKEN ||
+          "8974788916:AAEvyNJ3JOO0PPHI9UwPwXNp01T4HJ6XxdA";
+        const chatId = settings.smsIntegration?.telegramChatId;
+
+        if (settings.smsIntegration?.isTelegramEnabled !== false && botToken && chatId) {
+          const bdTime = new Intl.DateTimeFormat("en-GB", {
+            timeZone: "Asia/Dhaka",
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: true,
+          }).format(new Date());
+
+          const provider = topUp.paymentProvider || matchEvent?.provider || "MFS";
+          const receiverNum =
+            topUp.paymentNumber ||
+            matchEvent?.receiver ||
+            (settings.paymentNumbers as any)?.[provider.toLowerCase()]?.number ||
+            (settings.fallbackPaymentNumbers as any)?.[provider.toLowerCase()] ||
+            "সিস্টেম নম্বর";
+
+          const msg =
+            `🎉 *পেমেন্ট সফলভাবে ভেরিফাইড হয়েছে!*\n` +
+            `━━━━━━━━━━━━━━━━━━━━\n` +
+            `💰 *মাধ্যম:* ${provider}\n` +
+            `🆔 *TrxID:* \`${cleanTxId}\`\n` +
+            `💵 *পরিমাণ:* ৳${poishaToBdt(topUp.amount).toFixed(2)}\n` +
+            `📱 *প্রেরক নম্বর:* ${matchEvent?.sender || topUp.senderPhone || "অনুল্লেখিত"}\n` +
+            `📥 *প্রাপক নম্বর:* ${receiverNum}\n` +
+            `👤 *কাস্টমার মোবাইল:* ${customerPhone || "কাস্টমার"}\n` +
+            `🕒 *ভেরিফাই সময়:* ${bdTime}\n` +
+            `📊 *স্ট্যাটাস:* 🟢 ভেরিফাইড (VERIFIED)\n` +
+            `━━━━━━━━━━━━━━━━━━━━\n` +
+            `✅ কাস্টমার অ্যাকাউন্টে টাকা ক্রেডিট সম্পন্ন হয়েছে!`;
+
+          const { smsWebhookService } = await import("../smsWebhook/smsWebhook.service");
+          await smsWebhookService.sendTelegramRawMessage(botToken, chatId, msg);
+        }
+      } catch (_) {}
+
       return {
         success: true,
         status: "VERIFIED",
         walletBalance: poishaToBdt(finalBalance),
+        customerPhone,
       };
     } finally {
       await mongoSession.endSession();

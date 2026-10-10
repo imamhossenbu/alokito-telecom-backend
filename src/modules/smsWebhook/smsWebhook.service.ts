@@ -36,15 +36,47 @@ export const smsWebhookService = {
       parsed.receivedAt
     );
 
+    const settings = await systemSettingsService.getSettings();
+    const timeBd = new Intl.DateTimeFormat("en-GB", {
+      timeZone: "Asia/Dhaka",
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    }).format(parsed.receivedAt || new Date());
+
+    const receiverPhone =
+      parsed.receiver ||
+      (settings.paymentNumbers as any)?.[parsed.provider.toLowerCase()]?.number ||
+      (settings.fallbackPaymentNumbers as any)?.[parsed.provider.toLowerCase()] ||
+      "সিস্টেম নম্বর";
+
+    const sender = parsed.sender || senderPhone || "অনুল্লেখিত / গোপন";
+
     // 2. Check for duplicate SMS event
     const existing = await PaymentSmsEventModel.findOne({ smsFingerprint });
     if (existing) {
+      const existingBdTime = new Intl.DateTimeFormat("en-GB", {
+        timeZone: "Asia/Dhaka",
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      }).format(existing.receivedAt || new Date());
+
       return {
         success: true,
         isDuplicate: true,
         provider: existing.provider,
         transactionId: existing.transactionId,
         amount: poishaToBdt(existing.amount),
+        senderPhone: existing.sender || sender,
+        receiverPhone: existing.receiver || receiverPhone,
+        timeBd: existingBdTime,
         verificationStatus: existing.verificationStatus,
         message: "SMS ইতিমধ্যে সিস্টেমে রিসিভ করা হয়েছে",
       };
@@ -61,8 +93,8 @@ export const smsWebhookService = {
       provider: parsed.provider,
       transactionId: parsed.transactionId.toUpperCase(),
       amount: parsed.amount,
-      sender: parsed.sender,
-      receiver: parsed.receiver,
+      sender,
+      receiver: receiverPhone,
       reference: parsed.reference,
       receivedAt: parsed.receivedAt || new Date(),
       smsFingerprint,
@@ -75,30 +107,41 @@ export const smsWebhookService = {
     let matchedUserPhone: string | undefined;
     try {
       const matchResult = await topUpService.autoMatchPendingTopUp(event);
-      if (matchResult && event.verificationStatus === SmsEventVerificationStatus.MATCHED) {
+      if (matchResult && (matchResult.success || event.verificationStatus === SmsEventVerificationStatus.MATCHED)) {
         matched = true;
+        matchedUserPhone = matchResult.customerPhone;
       }
     } catch (err) {
       logger.warn({ err, eventId: event._id }, "Failed to auto-match pending topup on webhook ingestion");
     }
 
-    // 5. Send Telegram notification if configured
-    try {
-      const settings = await systemSettingsService.getSettings();
-      const botToken =
-        settings.smsIntegration?.telegramBotToken ||
-        process.env.TELEGRAM_BOT_TOKEN ||
-        "8974788916:AAEvyNJ3JOO0PPHI9UwPwXNp01T4HJ6XxdA";
-      const chatId = settings.smsIntegration?.telegramChatId;
+    // 5. Send Telegram notification if incoming from background forwarder
+    if (source === "FORWARDER_WEBHOOK") {
+      try {
+        const botToken =
+          settings.smsIntegration?.telegramBotToken ||
+          process.env.TELEGRAM_BOT_TOKEN ||
+          "8974788916:AAEvyNJ3JOO0PPHI9UwPwXNp01T4HJ6XxdA";
+        const chatId = settings.smsIntegration?.telegramChatId;
 
-      if (settings.smsIntegration?.isTelegramEnabled !== false && botToken && chatId) {
-        const text = matched
-          ? `✅ *পেমেন্ট সফলভাবে যোগ হয়েছে!*\n💰 *প্রোভাইডার:* ${parsed.provider}\n🆔 *TrxID:* \`${parsed.transactionId.toUpperCase()}\`\n💵 *পরিমাণ:* ৳${poishaToBdt(parsed.amount)}\n📱 *কাস্টমার অ্যাকাউন্টে ব্যালেন্স যুক্ত হয়েছে!*`
-          : `📥 *নতুন SMS রিসিভ হয়েছে (Unused)*\n💰 *প্রোভাইডার:* ${parsed.provider}\n🆔 *TrxID:* \`${parsed.transactionId.toUpperCase()}\`\n💵 *পরিমাণ:* ৳${poishaToBdt(parsed.amount)}\nℹ️ *কাস্টমার অ্যাপে সাবমিট করলে স্বয়ংক্রিয়ভাবে ক্রেডিট হবে।*`;
-        
-        await this.sendTelegramRawMessage(botToken, chatId, text);
-      }
-    } catch (_) {}
+        if (settings.smsIntegration?.isTelegramEnabled !== false && botToken && chatId && !matched) {
+          const text =
+            `📥 *নতুন পেমেন্ট SMS গৃহীত হয়েছে!*\n` +
+            `━━━━━━━━━━━━━━━━━━━━\n` +
+            `💰 *মাধ্যম:* ${parsed.provider}\n` +
+            `🆔 *TrxID:* \`${parsed.transactionId.toUpperCase()}\`\n` +
+            `💵 *পরিমাণ:* ৳${poishaToBdt(parsed.amount).toFixed(2)}\n` +
+            `📱 *প্রেরক নম্বর:* ${sender}\n` +
+            `📥 *প্রাপক নম্বর:* ${receiverPhone}\n` +
+            `🕒 *লেনদেন সময়:* ${timeBd}\n` +
+            `📊 *স্ট্যাটাস:* 🟡 পেন্ডিং (PENDING / UNUSED)\n` +
+            `━━━━━━━━━━━━━━━━━━━━\n` +
+            `ℹ️ কাস্টমার টাকা পাঠিয়ে অ্যাপ থেকে ভেরিফাই করলে স্বয়ংক্রিয়ভাবে ব্যালেন্স যোগ হবে এবং তখন ভেরিফাইড (VERIFIED) কনফার্মেশন পাবেন।`;
+
+          await this.sendTelegramRawMessage(botToken, chatId, text);
+        }
+      } catch (_) {}
+    }
 
     return {
       success: true,
@@ -106,6 +149,9 @@ export const smsWebhookService = {
       provider: parsed.provider,
       transactionId: parsed.transactionId.toUpperCase(),
       amount: poishaToBdt(parsed.amount),
+      senderPhone: sender,
+      receiverPhone,
+      timeBd,
       matched,
       matchedUserPhone,
       verificationStatus: event.verificationStatus,
@@ -202,11 +248,48 @@ export const smsWebhookService = {
     try {
       const result = await this.ingestSmsContent(text, undefined, "TELEGRAM_BOT");
       if (botToken) {
-        const replyText = result.matched
-          ? `✅ *সফল!*\n${result.provider} ট্রানজ্যাকশন \`${result.transactionId}\` (৳${result.amount}) কাস্টমার অ্যাকাউন্টে ক্রেডিট হয়েছে!`
-          : result.isDuplicate
-          ? `⚠️ *ইতিমধ্যে ব্যবহৃত!*\nএই TrxID \`${result.transactionId}\` আগেই প্রসেস করা হয়েছে।`
-          : `📥 *SMS গৃহীত হয়েছে!*\n${result.provider} TrxID: \`${result.transactionId}\` (৳${result.amount})\nকাস্টমার অ্যাপে সাবমিট করলে স্বয়ংক্রিয়ভাবে যুক্ত হবে।`;
+        let replyText = "";
+        if (result.matched) {
+          replyText =
+            `🎉 *পেমেন্ট সফলভাবে ভেরিফাইড হয়েছে!*\n` +
+            `━━━━━━━━━━━━━━━━━━━━\n` +
+            `💰 *মাধ্যম:* ${result.provider}\n` +
+            `🆔 *TrxID:* \`${result.transactionId}\`\n` +
+            `💵 *পরিমাণ:* ৳${result.amount.toFixed(2)}\n` +
+            `📱 *প্রেরক নম্বর:* ${result.senderPhone}\n` +
+            `📥 *প্রাপক নম্বর:* ${result.receiverPhone}\n` +
+            (result.matchedUserPhone ? `👤 *কাস্টমার মোবাইল:* ${result.matchedUserPhone}\n` : "") +
+            `🕒 *সময়:* ${result.timeBd}\n` +
+            `📊 *স্ট্যাটাস:* 🟢 ভেরিফাইড (VERIFIED)\n` +
+            `━━━━━━━━━━━━━━━━━━━━\n` +
+            `✅ কাস্টমার অ্যাকাউন্টে টাকা ক্রেডিট সম্পন্ন হয়েছে!`;
+        } else if (result.isDuplicate) {
+          replyText =
+            `⚠️ *ডুপ্লিকেট ট্রানজেকশন!*\n` +
+            `━━━━━━━━━━━━━━━━━━━━\n` +
+            `💰 *মাধ্যম:* ${result.provider}\n` +
+            `🆔 *TrxID:* \`${result.transactionId}\`\n` +
+            `💵 *পরিমাণ:* ৳${result.amount.toFixed(2)}\n` +
+            `📱 *প্রেরক নম্বর:* ${result.senderPhone}\n` +
+            `📥 *প্রাপক নম্বর:* ${result.receiverPhone}\n` +
+            `🕒 *সময়:* ${result.timeBd}\n` +
+            `📊 *স্ট্যাটাস:* 🔴 ইতিমধ্যে ব্যবহৃত (ALREADY USED)\n` +
+            `━━━━━━━━━━━━━━━━━━━━\n` +
+            `ℹ️ এই TrxID দিয়ে আগেই ব্যালেন্স যোগ করা হয়েছে।`;
+        } else {
+          replyText =
+            `📥 *নতুন পেমেন্ট SMS গৃহীত হয়েছে!*\n` +
+            `━━━━━━━━━━━━━━━━━━━━\n` +
+            `💰 *মাধ্যম:* ${result.provider}\n` +
+            `🆔 *TrxID:* \`${result.transactionId}\`\n` +
+            `💵 *পরিমাণ:* ৳${result.amount.toFixed(2)}\n` +
+            `📱 *প্রেরক নম্বর:* ${result.senderPhone}\n` +
+            `📥 *প্রাপক নম্বর:* ${result.receiverPhone}\n` +
+            `🕒 *লেনদেন সময়:* ${result.timeBd}\n` +
+            `📊 *স্ট্যাটাস:* 🟡 পেন্ডিং (PENDING / UNUSED)\n` +
+            `━━━━━━━━━━━━━━━━━━━━\n` +
+            `ℹ️ কাস্টমার টাকা পাঠিয়ে অ্যাপ থেকে ভেরিফাই করলে স্বয়ংক্রিয়ভাবে ব্যালেন্স যোগ হবে এবং তখন ভেরিফাইড (VERIFIED) কনফার্মেশন পাবেন।`;
+        }
         await this.sendTelegramRawMessage(botToken, chatId, replyText);
       }
     } catch (err: any) {
