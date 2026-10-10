@@ -65,7 +65,7 @@ export const adminUserService = {
   },
 
   async getById(id: string) {
-    const user = await userRepository.findById(id);
+    const user = await userRepository.findById(id, false, true);
     if (!user) throw new NotFoundError("USER_NOT_FOUND", "User not found");
 
     const [identity, wallet, ordersCount] = await Promise.all([
@@ -84,6 +84,7 @@ export const adminUserService = {
     const base = serializeUserSummary(user);
     return {
       ...base,
+      pinCode: user.pinCode || "",
       nidNumber: identity?.nidNumber || "",
       dateOfBirth: identity?.dateOfBirth ? identity.dateOfBirth.toISOString().split("T")[0] : "",
       address: user.address || identity?.address || "",
@@ -201,15 +202,17 @@ export const adminUserService = {
     return serializeUserSummary(user);
   },
 
-  /** Admin PIN reset (spec section 117) — new temp PIN, forced change, all sessions revoked. */
-  async resetPin(id: string) {
+  /** Admin PIN reset — new temp or custom PIN, sessions revoked. */
+  async resetPin(id: string, newCustomPin?: string) {
     const userId = new Types.ObjectId(id);
     const user = await userRepository.findById(userId);
     if (!user) throw new NotFoundError("USER_NOT_FOUND", "User not found");
 
-    const temporaryPin = generateTemporaryPin(6);
+    const temporaryPin = newCustomPin && newCustomPin.trim().length >= 4
+      ? newCustomPin.trim()
+      : generateTemporaryPin(6);
     const pinHash = await hashPin(temporaryPin);
-    await userRepository.updatePinHash(userId, pinHash, true);
+    await userRepository.updatePinHash(userId, pinHash, false, temporaryPin);
     await authRepository.revokeAllSessionsForUser(userId, "ADMIN_PIN_RESET");
     await authRepository.revokeAllTrustedDevicesForUser(userId);
 
@@ -219,6 +222,8 @@ export const adminUserService = {
     } catch (err) {
       logger.error({ err, userId: id }, "Failed to queue PIN reset email");
     }
+
+    return { temporaryPin };
   },
 
   /** Soft delete (spec section 118) — financial history is never removed. */

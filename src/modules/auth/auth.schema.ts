@@ -88,7 +88,7 @@ export type LogoutBody = z.infer<typeof logoutBodySchema>;
 
 // ── POST /auth/forgot-pin ─────────────────────────────────
 export const forgotPinBodySchema = z.object({
-  email: emailSchema,
+  email: z.string().min(3),
 });
 export type ForgotPinBody = z.infer<typeof forgotPinBodySchema>;
 

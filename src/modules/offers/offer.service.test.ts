@@ -10,6 +10,7 @@ import { Types } from "mongoose";
 vi.mock("./offer.repository");
 vi.mock("../operators/operator.repository");
 vi.mock("../auditLogs/auditLog.service");
+vi.mock("../notifications/notification.service");
 
 describe("Offer Service Unit Tests", () => {
   beforeEach(() => {

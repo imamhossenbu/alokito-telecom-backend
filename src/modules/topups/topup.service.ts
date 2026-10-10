@@ -49,7 +49,32 @@ export const topUpService = {
     if (transactionId && transactionId.trim().length > 0) {
       const cleanTxId = transactionId.trim().toUpperCase();
 
-      // Check if already successfully verified anywhere
+      // Check if this user already verified this exact transaction ID
+      const myVerified = await TopUpModel.findOne({
+        userId: new Types.ObjectId(userId),
+        customerTransactionId: cleanTxId,
+        status: TopUpStatus.VERIFIED,
+      });
+      if (myVerified) {
+        let wallet = await walletRepository.findByUserId(userId);
+        return {
+          topUpId: myVerified._id.toString(),
+          topUpNumber: myVerified.topUpNumber,
+          provider: myVerified.paymentProvider,
+          paymentNumber: myVerified.paymentNumber,
+          senderPhone: myVerified.senderPhone,
+          transactionId: myVerified.customerTransactionId,
+          amount: poishaToBdt(myVerified.amount),
+          status: TopUpStatus.VERIFIED,
+          verificationStatus: "VERIFIED",
+          isImmediatelyVerified: true,
+          createdAt: myVerified.createdAt,
+          walletBalance: wallet ? poishaToBdt(wallet.balance) : 0,
+          message: "এই Transaction ID টি ইতিমধ্যে সফলভাবে আপনার অ্যাকাউন্টে যুক্ত হয়েছে!",
+        };
+      }
+
+      // Check if already successfully verified anywhere else
       const alreadyUsed = await topUpRepository.existsByTransactionId(provider.toUpperCase(), cleanTxId);
       if (alreadyUsed) {
         throw new ConflictError(
@@ -65,9 +90,10 @@ export const topUpService = {
         status: { $in: [TopUpStatus.PENDING, TopUpStatus.VERIFYING] },
       });
       if (existingActive) {
+        // If this user already submitted it and it's verifying, inform them kindly
         throw new ConflictError(
           "IDEMPOTENCY_CONFLICT",
-          "এই Transaction ID দিয়ে ইতিমধ্যে একটি রিকোয়েস্ট জমা দেওয়া হয়েছে। দয়া করে অপেক্ষা করুন।"
+          "এই Transaction ID দিয়ে ইতিমধ্যে একটি রিকোয়েস্ট জমা দেওয়া হয়েছে। দয়া করে কিছুক্ষণ অপেক্ষা করুন।"
         );
       }
 
@@ -333,6 +359,17 @@ export const topUpService = {
         referenceId: topUp._id,
       });
 
+      // Emit live socket event for real-time customer app synchronization
+      try {
+        const { emitToUser } = await import("../../config/socket");
+        emitToUser(userId, "topup_verified", {
+          topUpId: topUp._id.toString(),
+          walletBalance: poishaToBdt(finalBalance),
+          amount: poishaToBdt(topUp.amount),
+          transactionId: cleanTxId,
+        });
+      } catch (_) {}
+
       return {
         success: true,
         status: "VERIFIED",
@@ -347,11 +384,10 @@ export const topUpService = {
   async autoMatchPendingTopUp(smsEvent: any) {
     try {
       const cleanTxId = smsEvent.transactionId.trim().toUpperCase();
-      // Look for any PENDING or VERIFYING top-up with matching provider, transactionId, and amount
+      // Look for any PENDING or VERIFYING top-up with matching provider and transactionId
       const pendingTopUp = await TopUpModel.findOne({
         paymentProvider: smsEvent.provider,
         customerTransactionId: cleanTxId,
-        amount: smsEvent.amount,
         status: { $in: [TopUpStatus.PENDING, TopUpStatus.VERIFYING] },
       });
 

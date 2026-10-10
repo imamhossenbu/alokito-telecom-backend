@@ -63,8 +63,15 @@ export const adminUserController = {
   async resetPin(req: Request, res: Response) {
     requireAdmin(req);
     const { id } = idParamsSchema.parse(req.params);
-    await adminUserService.resetPin(id);
-    sendSuccess(res, { data: { pinReset: true } });
+    const newPin = (req.body?.newPin || req.body?.pin)?.toString();
+    const result = await adminUserService.resetPin(id, newPin);
+    sendSuccess(res, {
+      data: {
+        pinReset: true,
+        newPin: result.temporaryPin,
+        message: `User PIN reset successfully to ${result.temporaryPin}`,
+      },
+    });
   },
 
   async softDelete(req: Request, res: Response) {

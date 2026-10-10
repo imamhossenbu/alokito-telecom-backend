@@ -67,6 +67,12 @@ export const userController = {
     sendSuccess(res, { data: { pinChanged: true } });
   },
 
+  async getMyPin(req: Request, res: Response) {
+    const userId = requireCustomer(req);
+    const data = await userService.getPin(userId);
+    sendSuccess(res, { data });
+  },
+
   async createCustomer(req: Request, res: Response) {
     const userId = requireCustomer(req);
     const body = createCustomerBodySchema.parse(req.body);

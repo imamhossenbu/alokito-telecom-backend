@@ -89,6 +89,7 @@ export const refundService = {
             balanceAfter,
             referenceType: "REFUND",
             referenceId: refund._id,
+            status: "REFUNDED",
             description: `Refund for failed order ${order.orderNumber}`,
           },
           mongoSession
@@ -96,6 +97,16 @@ export const refundService = {
 
         refund.walletTransactionId = wTx._id;
         await refund.save({ session: mongoSession });
+
+        // Update original purchase transaction status to REFUNDED
+        if (order.walletTransactionId) {
+          const { WalletTransactionModel } = await import("../walletTransactions/walletTransaction.model");
+          await WalletTransactionModel.findByIdAndUpdate(
+            order.walletTransactionId,
+            { status: "REFUNDED" },
+            { session: mongoSession }
+          );
+        }
 
         // Mark order as REFUNDED
         order.orderStatus = OrderStatus.REFUNDED;

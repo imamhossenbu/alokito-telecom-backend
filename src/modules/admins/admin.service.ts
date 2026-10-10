@@ -37,9 +37,11 @@ export const adminAuthService = {
           status: AdminStatus.ACTIVE,
         });
       } else {
+        // Do NOT overwrite passwordHash if admin already exists!
+        // This preserves password changes made by the admin.
         await AdminModel.updateOne(
           { _id: exists._id },
-          { $set: { passwordHash: hash, status: AdminStatus.ACTIVE } },
+          { $set: { status: AdminStatus.ACTIVE } },
         );
       }
     }
@@ -358,12 +360,15 @@ export const adminProfileService = {
     if (!admin) {
       throw new AppError("ADMIN_NOT_FOUND", "Admin not found", 404);
     }
-    const valid = await argon2.verify(admin.passwordHash, oldPass);
+    const valid = await argon2.verify(admin.passwordHash, oldPass?.trim() || "");
     if (!valid) {
       throw new AppError("AUTH_INVALID_CREDENTIALS", "Current password does not match", 400);
     }
-    admin.passwordHash = await argon2.hash(newPass);
-    await admin.save();
+    const newHash = await argon2.hash(newPass?.trim() || "");
+    await AdminModel.updateOne(
+      { _id: admin._id },
+      { $set: { passwordHash: newHash } },
+    );
     return { success: true, message: "Password updated successfully" };
   },
 };

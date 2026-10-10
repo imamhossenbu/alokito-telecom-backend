@@ -175,23 +175,61 @@ export class SystemSettingsService {
     }
     if ((data as any).serviceStatus) {
       const incoming = (data as any).serviceStatus;
+      const parseItem = (
+        existing: any,
+        val: any,
+        noteVal?: any,
+        fallbackTitle = ""
+      ) => {
+        if (typeof val === "boolean") {
+          return {
+            active: val,
+            title: existing?.title || fallbackTitle,
+            message: noteVal !== undefined ? String(noteVal) : (existing?.message || ""),
+          };
+        }
+        if (typeof val === "string") {
+          return {
+            active: val.trim().length > 0,
+            title: existing?.title || fallbackTitle,
+            message: val.trim(),
+          };
+        }
+        if (typeof val === "object" && val !== null) {
+          return {
+            ...existing,
+            ...val,
+            active: val.active !== undefined ? Boolean(val.active) : Boolean(existing?.active),
+          };
+        }
+        return existing || { active: false, title: fallbackTitle, message: "" };
+      };
+
       settings.serviceStatus = {
-        prayerBreak: {
-          ...settings.serviceStatus?.prayerBreak,
-          ...(incoming.prayerBreak || {}),
-        },
-        nightBreak: {
-          ...settings.serviceStatus?.nightBreak,
-          ...(incoming.nightBreak || {}),
-        },
-        offersClosed: {
-          ...settings.serviceStatus?.offersClosed,
-          ...(incoming.offersClosed || {}),
-        },
-        noticeBanner: {
-          ...settings.serviceStatus?.noticeBanner,
-          ...(incoming.noticeBanner || {}),
-        },
+        prayerBreak: parseItem(
+          settings.serviceStatus?.prayerBreak,
+          incoming.prayerBreak,
+          incoming.prayerBreakNote,
+          "নামাজের বিরতি চলছে"
+        ),
+        nightBreak: parseItem(
+          settings.serviceStatus?.nightBreak,
+          incoming.nightBreak,
+          incoming.nightBreakNote,
+          "রাতের বিরতি চলছে"
+        ),
+        offersClosed: parseItem(
+          settings.serviceStatus?.offersClosed,
+          incoming.offersClosed,
+          incoming.offersClosedNote,
+          "অফার সাময়িক বন্ধ"
+        ),
+        noticeBanner: parseItem(
+          settings.serviceStatus?.noticeBanner,
+          incoming.noticeBanner !== undefined ? incoming.noticeBanner : incoming.noticeBannerActive,
+          incoming.noticeBannerNote || incoming.noticeBanner,
+          "জরুরী নোটিশ"
+        ),
       };
       settings.markModified("serviceStatus");
     }

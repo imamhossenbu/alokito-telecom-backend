@@ -180,7 +180,13 @@ export const userService = {
     }
 
     const newPinHash = await hashPin(body.newPin);
-    await userRepository.updatePinHash(user._id, newPinHash, false);
+    await userRepository.updatePinHash(user._id, newPinHash, false, body.newPin);
+  },
+
+  async getPin(userId: string) {
+    const user = await userRepository.findById(userId, false, true);
+    if (!user) throw new NotFoundError("USER_NOT_FOUND", "User not found");
+    return { pin: user.pinCode || "" };
   },
 
   /**

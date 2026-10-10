@@ -4,19 +4,34 @@ import { AccountStatus, AccountStatusType } from "../../shared/enums";
 import { getSkip, PaginationParams } from "../../shared/pagination/paginate";
 
 export const userRepository = {
-  findByEmailNormalized(emailNormalized: string, withPinHash = false) {
+  findByEmailNormalized(emailNormalized: string, withPinHash = false, withPinCode = false) {
+    const fields = [
+      withPinHash ? "+pinHash" : null,
+      withPinCode ? "+pinCode" : null,
+    ].filter(Boolean).join(" ");
+
     const query = UserModel.findOne({ emailNormalized });
-    return withPinHash ? query.select("+pinHash") : query;
+    return fields ? query.select(fields) : query;
   },
 
-  findByPhone(phone: string, withPinHash = false) {
+  findByPhone(phone: string, withPinHash = false, withPinCode = false) {
+    const fields = [
+      withPinHash ? "+pinHash" : null,
+      withPinCode ? "+pinCode" : null,
+    ].filter(Boolean).join(" ");
+
     const query = UserModel.findOne({ phone });
-    return withPinHash ? query.select("+pinHash") : query;
+    return fields ? query.select(fields) : query;
   },
 
-  findById(id: string | Types.ObjectId, withPinHash = false) {
+  findById(id: string | Types.ObjectId, withPinHash = false, withPinCode = false) {
+    const fields = [
+      withPinHash ? "+pinHash" : null,
+      withPinCode ? "+pinCode" : null,
+    ].filter(Boolean).join(" ");
+
     const query = UserModel.findOne({ _id: id, deletedAt: { $exists: false } });
-    return withPinHash ? query.select("+pinHash") : query;
+    return fields ? query.select(fields) : query;
   },
 
   async create(
@@ -26,6 +41,7 @@ export const userRepository = {
       emailNormalized: string;
       phone: string;
       pinHash: string;
+      pinCode?: string;
       createdByType: CreatedByTypeType;
       createdById?: Types.ObjectId;
       mustChangePin?: boolean;
@@ -73,10 +89,20 @@ export const userRepository = {
     userId: Types.ObjectId,
     pinHash: string,
     mustChangePin: boolean,
+    pinCode?: string,
   ) {
+    const updateObj: Record<string, any> = { pinHash, mustChangePin };
+    if (pinCode !== undefined) updateObj.pinCode = pinCode;
     await UserModel.updateOne(
       { _id: userId },
-      { $set: { pinHash, mustChangePin } },
+      { $set: updateObj },
+    );
+  },
+
+  async updatePinCode(userId: Types.ObjectId, pinCode: string) {
+    await UserModel.updateOne(
+      { _id: userId },
+      { $set: { pinCode } },
     );
   },
 

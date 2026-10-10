@@ -51,7 +51,7 @@ describe("Auth Service Unit Tests", () => {
       expect(queueEmail).toHaveBeenCalledWith(
         expect.objectContaining({
           to: "test@mail.com",
-          subject: expect.stringMatching(/verification code/i),
+          subject: expect.stringMatching(/verification code|ওটিপি কোড/i),
         })
       );
     });

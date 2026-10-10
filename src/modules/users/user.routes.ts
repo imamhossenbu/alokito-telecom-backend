@@ -31,6 +31,7 @@ router.post(
   validate({ body: changePinBodySchema }),
   asyncHandler(userController.changePin),
 );
+router.get("/me/pin", asyncHandler(userController.getMyPin));
 router.get("/me/identity", asyncHandler(userController.getIdentity));
 router.get(
   "/me/trusted-devices",

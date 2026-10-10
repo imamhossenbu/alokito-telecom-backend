@@ -17,6 +17,7 @@ export interface WalletTransactionDocument extends Document {
   referenceType: "TOP_UP" | "ORDER" | "REFUND" | "ADMIN_ADJUSTMENT";
   referenceId: Types.ObjectId;
   description: string;
+  status: "PENDING" | "COMPLETED" | "CANCELLED" | "REFUNDED" | "FAILED";
   metadata?: Record<string, any>;
   createdAt: Date;
 }
@@ -38,6 +39,11 @@ const walletTransactionSchema = new Schema<WalletTransactionDocument>(
     },
     referenceId: { type: Schema.Types.ObjectId, required: true },
     description: { type: String, required: true },
+    status: {
+      type: String,
+      enum: ["PENDING", "COMPLETED", "CANCELLED", "REFUNDED", "FAILED"],
+      default: "COMPLETED",
+    },
     metadata: { type: Schema.Types.Mixed },
   },
   { timestamps: { createdAt: true, updatedAt: false } }

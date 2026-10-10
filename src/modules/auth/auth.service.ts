@@ -484,6 +484,9 @@ export const authService = {
       );
     }
 
+    // Cache the verified plain pinCode for user/admin convenience
+    await userRepository.updatePinCode(user._id, body.pin);
+
     if (user.mustChangePin) {
       const changeToken = signPurposeToken(
         { sub: user._id.toString(), purpose: "MUST_CHANGE_PIN" },
@@ -612,21 +615,29 @@ export const authService = {
   // FORGOT PIN (spec section 82)
   // ══════════════════════════════════════════════════════
   async forgotPin(body: ForgotPinBody) {
-    const emailNormalized = normalizeEmail(body.email);
-    const user = await userRepository.findByEmailNormalized(emailNormalized);
+    const input = body.email.trim();
+    let user;
+    if (input.includes("@")) {
+      const emailNormalized = normalizeEmail(input);
+      user = await userRepository.findByEmailNormalized(emailNormalized);
+    } else {
+      try {
+        const phoneNormalized = normalizeBdPhone(input);
+        user = await userRepository.findByPhone(phoneNormalized);
+      } catch (_) {
+        // Fallback search
+        user = await userRepository.findByPhone(input);
+      }
+    }
 
-    // NOTE: intentionally throwing USER_NOT_FOUND here rather than a generic
-    // "if this email exists..." response. Simpler UX at the cost of a minor
-    // email-enumeration surface — revisit during Phase 12 hardening if that
-    // trade-off needs to change.
     if (!user) {
       throw new NotFoundError(
         "USER_NOT_FOUND",
-        "No account found with this email",
+        "এই ইমেইল বা ফোন নম্বরের কোনো অ্যাকাউন্ট পাওয়া যায়নি",
       );
     }
 
-    const { verificationSessionId } = await issueOtp({
+    const { verificationSessionId, code } = await issueOtp({
       userId: user._id,
       email: user.email,
       purpose: VerificationPurpose.FORGOT_PIN,
@@ -635,6 +646,7 @@ export const authService = {
     return {
       verificationId: verificationSessionId.toString(),
       emailMasked: maskEmail(user.email),
+      code: env.NODE_ENV !== "production" ? code : undefined,
     };
   },
 
@@ -666,7 +678,7 @@ export const authService = {
 
     const userId = new Types.ObjectId(payload.sub);
     const pinHash = await hashPin(body.newPin);
-    await userRepository.updatePinHash(userId, pinHash, false);
+    await userRepository.updatePinHash(userId, pinHash, false, body.newPin);
 
     // Invalidate every existing session — a PIN reset means "someone lost
     // access to this account", so old sessions/devices must not survive it.

@@ -16,6 +16,7 @@ export interface UserDocument extends Document {
   emailNormalized: string;
   phone: string;
   pinHash: string;
+  pinCode?: string;
   profileImagePublicId?: string;
   profileImageUrl?: string;
   district?: string;
@@ -44,6 +45,7 @@ const userSchema = new Schema<UserDocument>(
     },
     phone: { type: String, required: true, trim: true },
     pinHash: { type: String, required: true, select: false },
+    pinCode: { type: String, select: false },
     profileImagePublicId: { type: String },
     profileImageUrl: { type: String },
     district: { type: String },

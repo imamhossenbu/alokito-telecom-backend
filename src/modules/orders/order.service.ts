@@ -14,6 +14,7 @@ import { auditLogService } from "../auditLogs/auditLog.service";
 import { ActorType } from "../auditLogs/auditLog.model";
 import { notificationService } from "../notifications/notification.service";
 import { broadcastToAdmins } from "../../config/socket";
+import { logger } from "../../config/logger";
 
 function validateStateTransition(current: OrderStatusType, target: OrderStatusType) {
   const allowed = ORDER_STATE_TRANSITIONS[current];
@@ -28,11 +29,31 @@ function validateStateTransition(current: OrderStatusType, target: OrderStatusTy
 
 export const orderService = {
   // ── Customer: Buy offer using wallet balance ──────────
-  async createOrder(userId: string, offerId: string, offerType: "NORMAL" | "DRIVE", phone: string) {
+  async createOrder(
+    userId: string,
+    offerId: string,
+    offerType: "NORMAL" | "DRIVE",
+    phone: string,
+    pin: string
+  ) {
     const mongoSession = await mongoose.startSession();
     try {
       let result;
       await mongoSession.withTransaction(async () => {
+        // 0. Verify Customer PIN
+        const user = await userRepository.findById(userId, true);
+        if (!user) {
+          throw new NotFoundError("USER_NOT_FOUND", "User not found");
+        }
+        if (!pin || pin.trim().length === 0) {
+          throw new AppError("VALIDATION_ERROR", "দয়া করে আপনার সিকিউরিটি পিন নম্বর প্রদান করুন।", 400);
+        }
+        const { verifyPin } = await import("../../shared/utils/pin");
+        const isPinCorrect = await verifyPin(user.pinHash, pin.trim());
+        if (!isPinCorrect) {
+          throw new AppError("AUTH_INVALID_CREDENTIALS", "আপনার সিকিউরিটি পিন সঠিক নয়। সঠিক পিন দিন।", 400);
+        }
+
         // 1. Fetch offer and ensure active
         let offer: any;
         if (offerType === "NORMAL") {
@@ -122,10 +143,12 @@ export const orderService = {
             balanceAfter,
             referenceType: "ORDER",
             referenceId: order._id,
+            status: "PENDING",
             description: `Purchased offer: ${offer.name || offer.offerName} (${phone})`,
             metadata: {
               recipientPhone: phone,
               offerName: offer.name || offer.offerName,
+              orderNumber: order.orderNumber,
             },
           },
           mongoSession
@@ -304,6 +327,12 @@ export const orderService = {
     order.completedAt = new Date();
     await order.save();
 
+    // Mark linked transaction as COMPLETED
+    if (order.walletTransactionId) {
+      const { WalletTransactionModel } = await import("../walletTransactions/walletTransaction.model");
+      await WalletTransactionModel.findByIdAndUpdate(order.walletTransactionId, { status: "COMPLETED" });
+    }
+
     await auditLogService.log({
       actorType: ActorType.ADMIN,
       actorId: adminId,
@@ -338,6 +367,43 @@ export const orderService = {
     order.failureReason = failureReason;
     await order.save();
 
+    // Automatically refund wallet if order was paid by wallet and not yet refunded
+    if (order.paymentMethod === "WALLET" && order.price > 0) {
+      try {
+        const wallet = await walletRepository.findByUserId(order.userId);
+        if (wallet) {
+          const balanceBefore = wallet.balance;
+          const balanceAfter = wallet.balance + order.price;
+          await walletRepository.creditBalance(order.userId, order.price);
+
+          const { WalletTransactionModel } = await import("../walletTransactions/walletTransaction.model");
+          if (order.walletTransactionId) {
+            await WalletTransactionModel.findByIdAndUpdate(order.walletTransactionId, { status: "FAILED" });
+          }
+
+          await walletTransactionRepository.create({
+            userId: order.userId,
+            walletId: wallet._id,
+            type: "REFUND",
+            direction: "CREDIT",
+            amount: order.price,
+            balanceBefore,
+            balanceAfter,
+            referenceType: "ORDER",
+            referenceId: order._id,
+            status: "REFUNDED",
+            description: `Refund for failed order ${order.orderNumber} (${order.offerName})`,
+            metadata: {
+              orderNumber: order.orderNumber,
+              recipientPhone: order.userPhone,
+            },
+          });
+        }
+      } catch (err) {
+        logger.error({ err, orderId: order._id }, "Failed to auto-refund on failOrder");
+      }
+    }
+
     await auditLogService.log({
       actorType: ActorType.ADMIN,
       actorId: adminId,
@@ -350,8 +416,8 @@ export const orderService = {
     await notificationService.send({
       userId: order.userId,
       type: "ORDER_FAILED",
-      title: "Order Failed",
-      message: `Your order for ${order.userPhone} has failed. Reason: ${failureReason}`,
+      title: "Order Failed & Refunded",
+      message: `Your order for ${order.userPhone} has failed (${failureReason}). Money has been refunded to your wallet.`,
       referenceType: "Order",
       referenceId: order._id,
     });
@@ -373,12 +439,58 @@ export const orderService = {
     order.failureReason = "Cancelled by Administrator";
     await order.save();
 
+    // Automatically refund wallet if order was paid by wallet and not yet refunded
+    if (order.paymentMethod === "WALLET" && order.price > 0) {
+      try {
+        const wallet = await walletRepository.findByUserId(order.userId);
+        if (wallet) {
+          const balanceBefore = wallet.balance;
+          const balanceAfter = wallet.balance + order.price;
+          await walletRepository.creditBalance(order.userId, order.price);
+
+          const { WalletTransactionModel } = await import("../walletTransactions/walletTransaction.model");
+          if (order.walletTransactionId) {
+            await WalletTransactionModel.findByIdAndUpdate(order.walletTransactionId, { status: "CANCELLED" });
+          }
+
+          await walletTransactionRepository.create({
+            userId: order.userId,
+            walletId: wallet._id,
+            type: "REFUND",
+            direction: "CREDIT",
+            amount: order.price,
+            balanceBefore,
+            balanceAfter,
+            referenceType: "ORDER",
+            referenceId: order._id,
+            status: "REFUNDED",
+            description: `Refund for cancelled order ${order.orderNumber} (${order.offerName})`,
+            metadata: {
+              orderNumber: order.orderNumber,
+              recipientPhone: order.userPhone,
+            },
+          });
+        }
+      } catch (err) {
+        logger.error({ err, orderId: order._id }, "Failed to auto-refund on cancelOrder");
+      }
+    }
+
     await auditLogService.log({
       actorType: ActorType.ADMIN,
       actorId: adminId,
       action: "ADMIN_ORDER_CANCELLED",
       entityType: "Order",
       entityId: order._id,
+    });
+
+    await notificationService.send({
+      userId: order.userId,
+      type: "ORDER_FAILED",
+      title: "Order Cancelled & Refunded",
+      message: `Your order for ${order.userPhone} was cancelled. ৳${poishaToBdt(order.price).toFixed(2)} has been refunded to your wallet.`,
+      referenceType: "Order",
+      referenceId: order._id,
     });
 
     return order;

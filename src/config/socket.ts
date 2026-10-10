@@ -75,6 +75,12 @@ export function sendRealTimeNotification(userId: string, data: any): void {
   }
 }
 
+export function emitToUser(userId: string, event: string, data: any): void {
+  if (io) {
+    io.to(userId).emit(event, data);
+  }
+}
+
 /**
  * Broadcast an event to all connected administrators.
  */

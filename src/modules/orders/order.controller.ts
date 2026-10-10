@@ -15,7 +15,8 @@ export const orderController = {
       req.actor.userId,
       body.offerId,
       body.offerType,
-      body.phone
+      body.phone,
+      body.pin
     );
     sendCreated(res, result);
   },
