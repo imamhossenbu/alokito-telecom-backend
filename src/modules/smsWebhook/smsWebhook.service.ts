@@ -199,8 +199,8 @@ export const smsWebhookService = {
       process.env.TELEGRAM_BOT_TOKEN ||
       "8974788916:AAEvyNJ3JOO0PPHI9UwPwXNp01T4HJ6XxdA";
 
-    // Auto-save admin chat ID if not set
-    if (!settings.smsIntegration?.telegramChatId && chatId) {
+    // Auto-save admin chat ID if not set or dummy
+    if (chatId && chatId !== "99999999") {
       if (!settings.smsIntegration) {
         settings.smsIntegration = {
           telegramBotToken: botToken,
