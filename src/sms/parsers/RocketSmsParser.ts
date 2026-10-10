@@ -6,7 +6,7 @@ export class RocketSmsParser implements SmsParser {
   canParse(smsContent: string): boolean {
     const lower = smsContent.toLowerCase();
     return (
-      (lower.includes("rocket") || lower.includes("16216") || lower.includes("dbbl") || lower.includes("received")) &&
+      (lower.includes("rocket") || lower.includes("16216") || lower.includes("dbbl")) &&
       (lower.includes("txnid") || lower.includes("txn id")) &&
       !lower.includes("nagad") &&
       !lower.includes("bkash")

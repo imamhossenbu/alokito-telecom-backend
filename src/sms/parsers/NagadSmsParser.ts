@@ -7,6 +7,9 @@ export class NagadSmsParser implements SmsParser {
     const lower = smsContent.toLowerCase();
     return (
       lower.includes("nagad") ||
+      lower.includes("16167") ||
+      lower.includes("money received") ||
+      (lower.includes("sender:") && (lower.includes("txnid") || lower.includes("txn id"))) ||
       (lower.includes("money in") && (lower.includes("txnid") || lower.includes("txn id"))) ||
       (lower.includes("cash in") && (lower.includes("txnid") || lower.includes("txn id")) && !lower.includes("bkash"))
     );
@@ -19,8 +22,8 @@ export class NagadSmsParser implements SmsParser {
     const normalizedContent = smsContent.replace(/,/g, "");
 
     const txnMatch = normalizedContent.match(/(?:TxnID|Txn ID)\s*:\s*([A-Za-z0-9]+)/i);
-    const amountMatch = normalizedContent.match(/(?:Tk|tk)\s*(\d+(?:\.\d{1,2})?)/i);
-    const senderMatch = normalizedContent.match(/from\s*(\+?880\d+|\d+)/i);
+    const amountMatch = normalizedContent.match(/(?:(?:Amount:\s*)?Tk|tk)\s*(\d+(?:\.\d{1,2})?)/i);
+    const senderMatch = normalizedContent.match(/(?:from|Sender:?)\s*(\+?880\d+|\d+)/i);
 
     if (!txnMatch) {
       throw new Error("Could not extract Nagad TxnID from SMS");
