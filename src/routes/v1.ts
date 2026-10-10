@@ -33,6 +33,7 @@ import notificationRoutes from "../modules/notifications/notification.routes";
 
 import settingsRoutes from "../modules/systemSettings/systemSettings.routes";
 import prayerTimesRoutes from "../modules/prayerTimes/prayerTimes.routes";
+import smsWebhookRoutes from "../modules/smsWebhook/smsWebhook.routes";
 
 router.use("/operators", operatorRoutes);
 router.use("/offers", offerRoutes);
@@ -41,6 +42,7 @@ router.use("/wallet/topups", topupRoutes);
 router.use("/wallet", walletRoutes);
 router.use("/payment-devices", paymentDeviceRoutes);
 router.use("/payment-methods", paymentMethodsRoutes);
+router.use("/sms", smsWebhookRoutes);
 router.use("/orders", orderRoutes);
 router.use("/refunds", refundRoutes);
 router.use("/notifications", notificationRoutes);

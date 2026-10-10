@@ -11,8 +11,9 @@ export type SmsEventVerificationStatusType =
 
 export interface PaymentSmsEventDocument extends Document {
   _id: Types.ObjectId;
-  paymentDeviceId: Types.ObjectId;
-  adminId: Types.ObjectId;
+  paymentDeviceId?: Types.ObjectId;
+  adminId?: Types.ObjectId;
+  source?: string;
   provider: string;
   transactionId: string;
   /** Integer poisha */
@@ -32,8 +33,9 @@ export interface PaymentSmsEventDocument extends Document {
 
 const paymentSmsEventSchema = new Schema<PaymentSmsEventDocument>(
   {
-    paymentDeviceId: { type: Schema.Types.ObjectId, ref: "PaymentDevice", required: true },
-    adminId: { type: Schema.Types.ObjectId, ref: "Admin", required: true },
+    paymentDeviceId: { type: Schema.Types.ObjectId, ref: "PaymentDevice", required: false },
+    adminId: { type: Schema.Types.ObjectId, ref: "Admin", required: false },
+    source: { type: String, default: "DEVICE" },
     provider: { type: String, enum: Object.values(PaymentProvider), required: true },
     transactionId: { type: String, required: true },
     amount: { type: Number, required: true, min: 0 },

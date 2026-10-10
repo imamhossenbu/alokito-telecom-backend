@@ -107,8 +107,61 @@ export class SystemSettingsService {
         }
       }
 
+      if (!settings.contactSupport) {
+        settings.contactSupport = {
+          whatsapp: "https://wa.me/8801890000001",
+          facebook: "https://facebook.com",
+          youtube: "https://youtube.com",
+          offlinePhone: "01890000001",
+        };
+        needSave = true;
+      }
+
+      if (!settings.paymentNumbers) {
+        settings.paymentNumbers = {
+          bkash: {
+            number: settings.fallbackPaymentNumbers?.bkash || "01890000001",
+            type: "Send Money (Personal)",
+            active: true,
+            instructions: "বিকাশ অ্যাপ বা *247# ডায়াল করে সেন্ড মানি করুন।",
+          },
+          nagad: {
+            number: settings.fallbackPaymentNumbers?.nagad || "01890000001",
+            type: "Send Money (Personal)",
+            active: true,
+            instructions: "নগদ অ্যাপ বা *167# ডায়াল করে সেন্ড মানি করুন।",
+          },
+          rocket: {
+            number: settings.fallbackPaymentNumbers?.rocket || "01890000001",
+            type: "Send Money (Personal)",
+            active: true,
+            instructions: "রকেট অ্যাপ বা *322# ডায়াল করে সেন্ড মানি করুন।",
+          },
+          upay: {
+            number: settings.fallbackPaymentNumbers?.upay || "01890000001",
+            type: "Send Money (Personal)",
+            active: true,
+            instructions: "উপায় অ্যাপ বা *268# ডায়াল করে সেন্ড মানি করুন।",
+          },
+        };
+        needSave = true;
+      }
+
+      if (!settings.smsIntegration) {
+        settings.smsIntegration = {
+          telegramBotToken: "",
+          telegramChatId: "",
+          forwarderApiKey: "alokito_sms_forwarder_key_2026",
+          isTelegramEnabled: false,
+        };
+        needSave = true;
+      }
+
       if (needSave) {
         settings.markModified("appVersion");
+        settings.markModified("contactSupport");
+        settings.markModified("paymentNumbers");
+        settings.markModified("smsIntegration");
         await settings.save().catch(() => {});
       }
     }
@@ -123,6 +176,9 @@ export class SystemSettingsService {
       rocket?: string;
       upay?: string;
     };
+    paymentNumbers?: any;
+    contactSupport?: any;
+    smsIntegration?: any;
     manualVerificationNote?: string;
     prayerTimesDistrict?: string;
   }): Promise<ISystemSettings> {
@@ -130,6 +186,41 @@ export class SystemSettingsService {
 
     if (data.verificationMode) {
       settings.verificationMode = data.verificationMode;
+    }
+    if (data.paymentNumbers) {
+      settings.paymentNumbers = {
+        bkash: { ...settings.paymentNumbers?.bkash, ...(data.paymentNumbers.bkash || {}) },
+        nagad: { ...settings.paymentNumbers?.nagad, ...(data.paymentNumbers.nagad || {}) },
+        rocket: { ...settings.paymentNumbers?.rocket, ...(data.paymentNumbers.rocket || {}) },
+        upay: { ...settings.paymentNumbers?.upay, ...(data.paymentNumbers.upay || {}) },
+      };
+      // Keep fallbackPaymentNumbers in sync
+      settings.fallbackPaymentNumbers = {
+        bkash: settings.paymentNumbers.bkash?.number || settings.fallbackPaymentNumbers?.bkash || "",
+        nagad: settings.paymentNumbers.nagad?.number || settings.fallbackPaymentNumbers?.nagad || "",
+        rocket: settings.paymentNumbers.rocket?.number || settings.fallbackPaymentNumbers?.rocket || "",
+        upay: settings.paymentNumbers.upay?.number || settings.fallbackPaymentNumbers?.upay || "",
+      };
+      settings.markModified("paymentNumbers");
+      settings.markModified("fallbackPaymentNumbers");
+    }
+    if (data.contactSupport) {
+      settings.contactSupport = {
+        whatsapp: data.contactSupport.whatsapp ?? settings.contactSupport?.whatsapp ?? "",
+        facebook: data.contactSupport.facebook ?? settings.contactSupport?.facebook ?? "",
+        youtube: data.contactSupport.youtube ?? settings.contactSupport?.youtube ?? "",
+        offlinePhone: data.contactSupport.offlinePhone ?? settings.contactSupport?.offlinePhone ?? "",
+      };
+      settings.markModified("contactSupport");
+    }
+    if (data.smsIntegration) {
+      settings.smsIntegration = {
+        telegramBotToken: data.smsIntegration.telegramBotToken ?? settings.smsIntegration?.telegramBotToken ?? "",
+        telegramChatId: data.smsIntegration.telegramChatId ?? settings.smsIntegration?.telegramChatId ?? "",
+        forwarderApiKey: data.smsIntegration.forwarderApiKey ?? settings.smsIntegration?.forwarderApiKey ?? "alokito_sms_forwarder_key_2026",
+        isTelegramEnabled: data.smsIntegration.isTelegramEnabled !== undefined ? Boolean(data.smsIntegration.isTelegramEnabled) : (settings.smsIntegration?.isTelegramEnabled || false),
+      };
+      settings.markModified("smsIntegration");
     }
     if (data.fallbackPaymentNumbers) {
       settings.fallbackPaymentNumbers = {

@@ -19,6 +19,27 @@ export interface IAppVersionItem {
   releaseNotes: string;
 }
 
+export interface IPaymentMethodConfig {
+  number: string;
+  type: string;
+  active: boolean;
+  instructions: string;
+}
+
+export interface IContactSupport {
+  whatsapp: string;
+  facebook: string;
+  youtube: string;
+  offlinePhone: string;
+}
+
+export interface ISmsIntegration {
+  telegramBotToken: string;
+  telegramChatId: string;
+  forwarderApiKey: string;
+  isTelegramEnabled: boolean;
+}
+
 export interface ISystemSettings extends Document {
   verificationMode: VerificationMode;
   fallbackPaymentNumbers: {
@@ -27,6 +48,14 @@ export interface ISystemSettings extends Document {
     rocket: string;
     upay: string;
   };
+  paymentNumbers: {
+    bkash: IPaymentMethodConfig;
+    nagad: IPaymentMethodConfig;
+    rocket: IPaymentMethodConfig;
+    upay: IPaymentMethodConfig;
+  };
+  contactSupport: IContactSupport;
+  smsIntegration: ISmsIntegration;
   manualVerificationNote: string;
   prayerTimesDistrict: string;
   serviceStatus: {
@@ -55,6 +84,44 @@ const SystemSettingsSchema = new Schema<ISystemSettings>(
       nagad: { type: String, default: "01890000001" },
       rocket: { type: String, default: "01890000001" },
       upay: { type: String, default: "01890000001" },
+    },
+    paymentNumbers: {
+      bkash: {
+        number: { type: String, default: "01890000001" },
+        type: { type: String, default: "Send Money (Personal)" },
+        active: { type: Boolean, default: true },
+        instructions: { type: String, default: "বিকাশ অ্যাপ বা *247# ডায়াল করে সেন্ড মানি করুন।" },
+      },
+      nagad: {
+        number: { type: String, default: "01890000001" },
+        type: { type: String, default: "Send Money (Personal)" },
+        active: { type: Boolean, default: true },
+        instructions: { type: String, default: "নগদ অ্যাপ বা *167# ডায়াল করে সেন্ড মানি করুন।" },
+      },
+      rocket: {
+        number: { type: String, default: "01890000001" },
+        type: { type: String, default: "Send Money (Personal)" },
+        active: { type: Boolean, default: true },
+        instructions: { type: String, default: "রকেট অ্যাপ বা *322# ডায়াল করে সেন্ড মানি করুন।" },
+      },
+      upay: {
+        number: { type: String, default: "01890000001" },
+        type: { type: String, default: "Send Money (Personal)" },
+        active: { type: Boolean, default: true },
+        instructions: { type: String, default: "উপায় অ্যাপ বা *268# ডায়াল করে সেন্ড মানি করুন।" },
+      },
+    },
+    contactSupport: {
+      whatsapp: { type: String, default: "https://wa.me/8801890000001" },
+      facebook: { type: String, default: "https://facebook.com" },
+      youtube: { type: String, default: "https://youtube.com" },
+      offlinePhone: { type: String, default: "01890000001" },
+    },
+    smsIntegration: {
+      telegramBotToken: { type: String, default: "" },
+      telegramChatId: { type: String, default: "" },
+      forwarderApiKey: { type: String, default: "alokito_sms_forwarder_key_2026" },
+      isTelegramEnabled: { type: Boolean, default: false },
     },
     manualVerificationNote: {
       type: String,

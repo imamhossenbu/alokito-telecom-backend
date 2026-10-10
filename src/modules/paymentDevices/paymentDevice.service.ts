@@ -546,19 +546,66 @@ export const paymentDeviceService = {
 
   // ── Active Payment Methods Listing ────────────────────
   async getActivePaymentMethods() {
-    const threshold = Date.now() - env.DEVICE_HEARTBEAT_TIMEOUT_SECONDS * 1000;
-    
-    // Find all devices mapping active providers
-    const devices = await PaymentDeviceModel.find({
-      status: PaymentDeviceStatus.CONNECTED,
-    }).sort({ updatedAt: -1 });
-
     const activeMethods: Array<{
       provider: string;
       paymentNumber: string;
+      type?: string;
+      instructions?: string;
       simSlot?: number;
       status: string;
     }> = [];
+
+    // 1. Highest priority: Admin configured payment numbers from SystemSettings
+    try {
+      const { systemSettingsService } = await import("../systemSettings/systemSettings.service");
+      const settings = await systemSettingsService.getSettings();
+      const pn = settings.paymentNumbers;
+      if (pn) {
+        if (pn.bkash?.active !== false && pn.bkash?.number) {
+          activeMethods.push({
+            provider: "BKASH",
+            paymentNumber: pn.bkash.number,
+            type: pn.bkash.type || "Send Money (Personal)",
+            instructions: pn.bkash.instructions || "",
+            status: "AVAILABLE",
+          });
+        }
+        if (pn.nagad?.active !== false && pn.nagad?.number) {
+          activeMethods.push({
+            provider: "NAGAD",
+            paymentNumber: pn.nagad.number,
+            type: pn.nagad.type || "Send Money (Personal)",
+            instructions: pn.nagad.instructions || "",
+            status: "AVAILABLE",
+          });
+        }
+        if (pn.rocket?.active !== false && pn.rocket?.number) {
+          activeMethods.push({
+            provider: "ROCKET",
+            paymentNumber: pn.rocket.number,
+            type: pn.rocket.type || "Send Money (Personal)",
+            instructions: pn.rocket.instructions || "",
+            status: "AVAILABLE",
+          });
+        }
+        if (pn.upay?.active !== false && pn.upay?.number) {
+          activeMethods.push({
+            provider: "UPAY",
+            paymentNumber: pn.upay.number,
+            type: pn.upay.type || "Send Money (Personal)",
+            instructions: pn.upay.instructions || "",
+            status: "AVAILABLE",
+          });
+        }
+      }
+    } catch (_) {}
+
+    const threshold = Date.now() - env.DEVICE_HEARTBEAT_TIMEOUT_SECONDS * 1000;
+    
+    // 2. Check connected devices if any providers still not covered
+    const devices = await PaymentDeviceModel.find({
+      status: PaymentDeviceStatus.CONNECTED,
+    }).sort({ updatedAt: -1 });
 
     for (const d of devices) {
       // Check if actually offline
