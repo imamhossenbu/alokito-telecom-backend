@@ -463,26 +463,20 @@ export const topUpService = {
 
   async getTopUps(userId: string, page = 1, limit = 50) {
     const res = await topUpRepository.findAll(userId, page, limit);
-    const docs = res.docs
-      // Filter out any abandoned legacy records without customerTransactionId
-      .filter((doc: any) => {
-        const tx = doc.customerTransactionId;
-        return tx && typeof tx === "string" && tx.trim().length > 0;
-      })
-      .map((doc: any) => {
-        const obj = doc.toObject ? doc.toObject() : doc;
-        const txId = (obj.customerTransactionId || "").trim();
-        return {
-          ...obj,
-          id: obj._id?.toString() ?? obj.id,
-          topUpNumber: obj.topUpNumber || "",
-          amountBdt: poishaToBdt(obj.amount),
-          customerTransactionId: txId,
-          transactionId: txId,
-          paymentNumber: obj.paymentNumber || "",
-          senderPhone: obj.senderPhone || "",
-        };
-      });
+    const docs = res.docs.map((doc: any) => {
+      const obj = doc.toObject ? doc.toObject() : doc;
+      const txId = (obj.customerTransactionId || "").trim();
+      return {
+        ...obj,
+        id: obj._id?.toString() ?? obj.id,
+        topUpNumber: obj.topUpNumber || "",
+        amountBdt: poishaToBdt(obj.amount),
+        customerTransactionId: txId,
+        transactionId: txId,
+        paymentNumber: obj.paymentNumber || "",
+        senderPhone: obj.senderPhone || "",
+      };
+    });
     return { ...res, docs };
   },
 
@@ -502,7 +496,116 @@ export const topUpService = {
     };
   },
 
-  // ── Admin Top-Up Manual Approval Methods ──
+  // ── Admin Top-Up Management & Manual Approval Methods ──
+  async adminGetAllTopUps({
+    page = 1,
+    limit = 50,
+    search,
+    status,
+    provider,
+    userId,
+  }: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    status?: string;
+    provider?: string;
+    userId?: string;
+  }) {
+    const skip = (page - 1) * limit;
+    const filter: any = {};
+
+    if (status && status !== "ALL") {
+      if (status === "PENDING_VERIFYING") {
+        filter.status = { $in: [TopUpStatus.PENDING, TopUpStatus.VERIFYING] };
+      } else {
+        filter.status = status;
+      }
+    }
+
+    if (provider && provider !== "ALL") {
+      filter.paymentProvider = provider.toUpperCase();
+    }
+
+    if (userId) {
+      filter.userId = userId;
+    }
+
+    if (search && search.trim()) {
+      const q = search.trim();
+      const regex = new RegExp(q, "i");
+
+      const { UserModel } = await import("../users/user.model");
+      const matchingUsers = await UserModel.find({
+        $or: [{ phone: regex }, { name: regex }, { email: regex }],
+      }).select("_id");
+      const userIds = matchingUsers.map((u) => u._id);
+
+      filter.$or = [
+        { customerTransactionId: regex },
+        { senderPhone: regex },
+        { paymentNumber: regex },
+        { topUpNumber: regex },
+        ...(userIds.length > 0 ? [{ userId: { $in: userIds } }] : []),
+      ];
+    }
+
+    const [docs, total, stats] = await Promise.all([
+      TopUpModel.find(filter)
+        .populate("userId", "name phone email")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      TopUpModel.countDocuments(filter),
+      TopUpModel.aggregate([
+        {
+          $group: {
+            _id: "$status",
+            count: { $sum: 1 },
+            totalAmount: { $sum: "$amount" },
+          },
+        },
+      ]),
+    ]);
+
+    const formattedDocs = docs.map((doc: any) => {
+      const obj = doc.toObject ? doc.toObject() : doc;
+      const userObj = obj.userId && typeof obj.userId === "object" ? obj.userId : {};
+      const txId = (obj.customerTransactionId || "").trim();
+      return {
+        ...obj,
+        id: obj._id?.toString() ?? obj.id,
+        amountBdt: poishaToBdt(obj.amount),
+        customerTransactionId: txId,
+        transactionId: txId,
+        customerName: userObj.name || "Customer",
+        customerPhone: userObj.phone || "",
+        customerEmail: userObj.email || "",
+      };
+    });
+
+    const summary = {
+      pending: 0,
+      verifying: 0,
+      verified: 0,
+      failed: 0,
+      expired: 0,
+      totalAmountBdt: 0,
+    };
+    for (const s of stats) {
+      const st = (s._id || "").toString().toUpperCase();
+      if (st === "PENDING") summary.pending += s.count;
+      else if (st === "VERIFYING") summary.verifying += s.count;
+      else if (st === "VERIFIED") summary.verified += s.count;
+      else if (st === "FAILED") summary.failed += s.count;
+      else if (st === "EXPIRED") summary.expired += s.count;
+      summary.totalAmountBdt += poishaToBdt(s.totalAmount || 0);
+    }
+
+    const totalPages = Math.ceil(total / limit) || 1;
+    return { docs: formattedDocs, total, page, limit, totalPages, summary };
+  },
+
   async adminGetPendingTopUps(page = 1, limit = 50) {
     const skip = (page - 1) * limit;
     const filter = { status: { $in: [TopUpStatus.VERIFYING, TopUpStatus.PENDING] } };
@@ -516,10 +619,17 @@ export const topUpService = {
     ]);
     const formattedDocs = docs.map((doc: any) => {
       const obj = doc.toObject ? doc.toObject() : doc;
+      const userObj = obj.userId && typeof obj.userId === "object" ? obj.userId : {};
+      const txId = (obj.customerTransactionId || "").trim();
       return {
         ...obj,
         id: obj._id?.toString() ?? obj.id,
         amountBdt: poishaToBdt(obj.amount),
+        customerTransactionId: txId,
+        transactionId: txId,
+        customerName: userObj.name || "Customer",
+        customerPhone: userObj.phone || "",
+        customerEmail: userObj.email || "",
       };
     });
     return { docs: formattedDocs, total, page, limit };
@@ -593,6 +703,64 @@ export const topUpService = {
         referenceType: "TopUp",
         referenceId: topUp._id,
       });
+
+      // Live socket emit to customer app
+      try {
+        const { emitToUser } = await import("../../config/socket");
+        emitToUser(topUp.userId.toString(), "topup_verified", {
+          topUpId: topUp._id.toString(),
+          walletBalance: poishaToBdt(finalBalance),
+          amount: poishaToBdt(topUp.amount),
+          transactionId: topUp.customerTransactionId,
+        });
+      } catch (_) {}
+
+      // Telegram notification to alert group
+      try {
+        const { systemSettingsService } = await import("../systemSettings/systemSettings.service");
+        const { UserModel } = await import("../users/user.model");
+        const customer = await UserModel.findById(topUp.userId).select("phone name");
+
+        const settings = await systemSettingsService.getSettings();
+        const botToken =
+          settings.smsIntegration?.telegramBotToken ||
+          process.env.TELEGRAM_BOT_TOKEN ||
+          "8974788916:AAEvyNJ3JOO0PPHI9UwPwXNp01T4HJ6XxdA";
+        const chatId = settings.smsIntegration?.telegramChatId || "-1004457142501";
+
+        if (settings.smsIntegration?.isTelegramEnabled !== false && botToken && chatId) {
+          const bdTime = new Intl.DateTimeFormat("en-GB", {
+            timeZone: "Asia/Dhaka",
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: true,
+          }).format(new Date());
+
+          const provider = topUp.paymentProvider || "MFS";
+          const txId = (topUp.customerTransactionId || "N/A").toUpperCase();
+
+          const msg =
+            `🎉 <b>পেমেন্ট ম্যানুয়ালি অনুমোদিত হয়েছে! (Admin Manual Verification)</b>\n` +
+            `━━━━━━━━━━━━━━━━━━━━\n` +
+            `💰 <b>মাধ্যম:</b> ${provider}\n` +
+            `🆔 <b>TrxID:</b> <code>${txId}</code>\n` +
+            `💵 <b>পরিমাণ:</b> ৳${poishaToBdt(topUp.amount).toFixed(2)}\n` +
+            `👤 <b>কাস্টমার:</b> ${customer?.name || "গ্রাহক"} (${customer?.phone || ""})\n` +
+            `📱 <b>প্রেরক নম্বর:</b> ${topUp.senderPhone || "অনুল্লেখিত"}\n` +
+            `📥 <b>প্রাপক নম্বর:</b> ${topUp.paymentNumber || "সিস্টেম নম্বর"}\n` +
+            `🕒 <b>অনুমোদনের সময়:</b> ${bdTime} (BST)\n` +
+            `📊 <b>স্ট্যাটাস:</b> 🟢 ভেরিফাইড (VERIFIED)\n` +
+            `📝 <b>অ্যাডমিন নোট:</b> ${adminNote || "ম্যানুয়ালি যাচাই করে ভেরিফাই করা হয়েছে"}\n` +
+            `━━━━━━━━━━━━━━━━━━━━\n` +
+            `✅ কাস্টমার ওয়ালেটে ব্যালেন্স সফলভাবে ক্রেডিট সম্পন্ন হয়েছে!`;
+
+          const { smsWebhookService } = await import("../smsWebhook/smsWebhook.service");
+          await smsWebhookService.sendTelegramRawMessage(botToken, chatId, msg, "HTML");
+        }
+      } catch (_) {}
 
       return {
         success: true,

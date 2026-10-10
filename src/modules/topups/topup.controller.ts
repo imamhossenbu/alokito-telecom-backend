@@ -46,6 +46,28 @@ export const topUpController = {
     sendSuccess(res, { data: topUp });
   },
 
+  async adminGetAllTopUps(req: Request, res: Response) {
+    if (!req.actor || req.actor.type !== "ADMIN") {
+      throw new UnauthorizedError();
+    }
+    const page = req.query.page ? parseInt(req.query.page as string, 10) : 1;
+    const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 50;
+    const search = req.query.search as string | undefined;
+    const status = req.query.status as string | undefined;
+    const provider = req.query.provider as string | undefined;
+    const userId = req.query.userId as string | undefined;
+
+    const result = await topUpService.adminGetAllTopUps({
+      page,
+      limit,
+      search,
+      status,
+      provider,
+      userId,
+    });
+    sendSuccess(res, { data: result });
+  },
+
   async adminGetPendingTopUps(req: Request, res: Response) {
     if (!req.actor || req.actor.type !== "ADMIN") {
       throw new UnauthorizedError();

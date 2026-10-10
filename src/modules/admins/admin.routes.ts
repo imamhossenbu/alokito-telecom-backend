@@ -381,6 +381,11 @@ router.post(
 
 // ── Top-up manual verification & approval ─────────────
 router.get(
+  "/topups",
+  adminMiddleware,
+  asyncHandler(topUpController.adminGetAllTopUps),
+);
+router.get(
   "/topups/pending",
   adminMiddleware,
   asyncHandler(topUpController.adminGetPendingTopUps),
