@@ -64,11 +64,11 @@ export class SystemSettingsService {
       } else {
         if (!settings.appVersion.customer) {
           settings.appVersion.customer = {
-            latestVersion: "1.0.4",
-            buildNumber: 5,
+            latestVersion: "1.0.6",
+            buildNumber: 7,
             downloadUrl: "https://alokito-telecom-backend-1.onrender.com/download/customer",
             forceUpdate: false,
-            releaseNotes: "নতুন ড্রাইভ অফার, ব্যালেন্স অটো-ভেরিফিকেশন ও স্বয়ংক্রিয় অ্যাপ আপডেট সুবিধা।",
+            releaseNotes: "নামাজের বিরতি ব্যানার, পিন রিসেট ও পরিবর্তন সুবিধা এবং অফার ট্র্যাকিং আপডেট।",
           };
           needSave = true;
         } else {
@@ -76,20 +76,21 @@ export class SystemSettingsService {
             settings.appVersion.customer.downloadUrl = "https://alokito-telecom-backend-1.onrender.com/download/customer";
             needSave = true;
           }
-          if ((settings.appVersion.customer.buildNumber || 0) < 5) {
-            settings.appVersion.customer.buildNumber = 5;
-            settings.appVersion.customer.latestVersion = "1.0.4";
+          if ((settings.appVersion.customer.buildNumber || 0) < 7) {
+            settings.appVersion.customer.buildNumber = 7;
+            settings.appVersion.customer.latestVersion = "1.0.6";
+            settings.appVersion.customer.releaseNotes = "নামাজের বিরতি ব্যানার, পিন রিসেট ও পরিবর্তন সুবিধা এবং অফার ট্র্যাকিং আপডেট।";
             needSave = true;
           }
         }
 
         if (!settings.appVersion.admin) {
           settings.appVersion.admin = {
-            latestVersion: "1.0.3",
-            buildNumber: 4,
+            latestVersion: "1.0.4",
+            buildNumber: 5,
             downloadUrl: "https://alokito-telecom-backend-1.onrender.com/download/admin",
             forceUpdate: false,
-            releaseNotes: "অ্যাডমিন রিয়েলটাইম নোটিফিকেশন অ্যালার্ট ও অর্ডার প্রসেসিং আপডেট।",
+            releaseNotes: "পাসওয়ার্ড পরিবর্তন রেজুলেশন এবং মেম্বার পিন রিসেট সুবিধা।",
           };
           needSave = true;
         } else {
@@ -97,9 +98,10 @@ export class SystemSettingsService {
             settings.appVersion.admin.downloadUrl = "https://alokito-telecom-backend-1.onrender.com/download/admin";
             needSave = true;
           }
-          if ((settings.appVersion.admin.buildNumber || 0) < 4) {
-            settings.appVersion.admin.buildNumber = 4;
-            settings.appVersion.admin.latestVersion = "1.0.3";
+          if ((settings.appVersion.admin.buildNumber || 0) < 5) {
+            settings.appVersion.admin.buildNumber = 5;
+            settings.appVersion.admin.latestVersion = "1.0.4";
+            settings.appVersion.admin.releaseNotes = "পাসওয়ার্ড পরিবর্তন রেজুলেশন এবং মেম্বার পিন রিসেট সুবিধা।";
             needSave = true;
           }
         }
