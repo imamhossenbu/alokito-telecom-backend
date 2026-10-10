@@ -149,11 +149,15 @@ export class SystemSettingsService {
 
       if (!settings.smsIntegration) {
         settings.smsIntegration = {
-          telegramBotToken: "",
+          telegramBotToken: process.env.TELEGRAM_BOT_TOKEN || "8974788916:AAEvyNJ3JOO0PPHI9UwPwXNp01T4HJ6XxdA",
           telegramChatId: "",
           forwarderApiKey: "alokito_sms_forwarder_key_2026",
-          isTelegramEnabled: false,
+          isTelegramEnabled: true,
         };
+        needSave = true;
+      } else if (!settings.smsIntegration.telegramBotToken) {
+        settings.smsIntegration.telegramBotToken = process.env.TELEGRAM_BOT_TOKEN || "8974788916:AAEvyNJ3JOO0PPHI9UwPwXNp01T4HJ6XxdA";
+        settings.smsIntegration.isTelegramEnabled = true;
         needSave = true;
       }
 

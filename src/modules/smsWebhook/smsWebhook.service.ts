@@ -85,16 +85,18 @@ export const smsWebhookService = {
     // 5. Send Telegram notification if configured
     try {
       const settings = await systemSettingsService.getSettings();
-      if (settings.smsIntegration?.isTelegramEnabled && settings.smsIntegration?.telegramBotToken && settings.smsIntegration?.telegramChatId) {
+      const botToken =
+        settings.smsIntegration?.telegramBotToken ||
+        process.env.TELEGRAM_BOT_TOKEN ||
+        "8974788916:AAEvyNJ3JOO0PPHI9UwPwXNp01T4HJ6XxdA";
+      const chatId = settings.smsIntegration?.telegramChatId;
+
+      if (settings.smsIntegration?.isTelegramEnabled !== false && botToken && chatId) {
         const text = matched
           ? `✅ *পেমেন্ট সফলভাবে যোগ হয়েছে!*\n💰 *প্রোভাইডার:* ${parsed.provider}\n🆔 *TrxID:* \`${parsed.transactionId.toUpperCase()}\`\n💵 *পরিমাণ:* ৳${poishaToBdt(parsed.amount)}\n📱 *কাস্টমার অ্যাকাউন্টে ব্যালেন্স যুক্ত হয়েছে!*`
           : `📥 *নতুন SMS রিসিভ হয়েছে (Unused)*\n💰 *প্রোভাইডার:* ${parsed.provider}\n🆔 *TrxID:* \`${parsed.transactionId.toUpperCase()}\`\n💵 *পরিমাণ:* ৳${poishaToBdt(parsed.amount)}\nℹ️ *কাস্টমার অ্যাপে সাবমিট করলে স্বয়ংক্রিয়ভাবে ক্রেডিট হবে।*`;
         
-        await this.sendTelegramRawMessage(
-          settings.smsIntegration.telegramBotToken,
-          settings.smsIntegration.telegramChatId,
-          text
-        );
+        await this.sendTelegramRawMessage(botToken, chatId, text);
       }
     } catch (_) {}
 
@@ -146,11 +148,30 @@ export const smsWebhookService = {
     if (!chatId || !text) return { ok: true };
 
     const settings = await systemSettingsService.getSettings();
-    const botToken = settings.smsIntegration?.telegramBotToken;
+    const botToken =
+      settings.smsIntegration?.telegramBotToken ||
+      process.env.TELEGRAM_BOT_TOKEN ||
+      "8974788916:AAEvyNJ3JOO0PPHI9UwPwXNp01T4HJ6XxdA";
+
+    // Auto-save admin chat ID if not set
+    if (!settings.smsIntegration?.telegramChatId && chatId) {
+      if (!settings.smsIntegration) {
+        settings.smsIntegration = {
+          telegramBotToken: botToken,
+          telegramChatId: chatId,
+          forwarderApiKey: "alokito_sms_forwarder_key_2026",
+          isTelegramEnabled: true,
+        };
+      } else {
+        settings.smsIntegration.telegramChatId = chatId;
+        settings.smsIntegration.isTelegramEnabled = true;
+      }
+      await settings.save().catch(() => {});
+    }
 
     // Command: /start or /help
     if (text === "/start" || text === "/help") {
-      const reply = `🤖 *আলোকিত টেলিকম পেমেন্ট বট*\n\nআপনার চ্যাট আইডি: \`${chatId}\`\n\nএই বটে আপনার বিকাশ, নগদ বা রকেটের ক্যাশ-ইন / রিসিভ করা SMS ফরোয়ার্ড বা পেস্ট করলেই সাথে সাথে কাস্টমারের ব্যালেন্স অটো-ক্রেডিট হয়ে যাবে!\n\n📋 *কমান্ডসমূহ:*\n/id - আপনার Chat ID জানতে\n/status - সিস্টেম স্ট্যাটাস জানতে`;
+      const reply = `🤖 *আলোকিত টেলিকম পেমেন্ট বট*\n\nআপনার চ্যাট আইডি: \`${chatId}\` (সিস্টেমে অটো-কানেক্টেড ✅)\n\nএই বটে আপনার বিকাশ, নগদ, রকেট বা উপায়ের ক্যাশ-ইন / রিসিভ করা SMS ফরোয়ার্ড বা পেস্ট করলেই সাথে সাথে কাস্টমারের ব্যালেন্স অটো-ক্রেডিট হয়ে যাবে!\n\n📋 *কমান্ডসমূহ:*\n/id - আপনার Chat ID জানতে\n/status - সিস্টেম স্ট্যাটাস জানতে`;
       if (botToken) await this.sendTelegramRawMessage(botToken, chatId, reply);
       return { ok: true };
     }
