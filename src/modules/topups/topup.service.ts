@@ -11,6 +11,7 @@ import { env } from "../../config/env";
 import { auditLogService } from "../auditLogs/auditLog.service";
 import { ActorType } from "../auditLogs/auditLog.model";
 import { notificationService } from "../notifications/notification.service";
+import { UserModel } from "../users/user.model";
 import { logger } from "../../config/logger";
 
 export const topUpService = {
