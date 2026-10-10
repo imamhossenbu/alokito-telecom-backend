@@ -150,15 +150,21 @@ export class SystemSettingsService {
       if (!settings.smsIntegration) {
         settings.smsIntegration = {
           telegramBotToken: process.env.TELEGRAM_BOT_TOKEN || "8974788916:AAEvyNJ3JOO0PPHI9UwPwXNp01T4HJ6XxdA",
-          telegramChatId: "",
+          telegramChatId: process.env.TELEGRAM_ADMIN_CHAT_ID || "-1004457142501",
           forwarderApiKey: "alokito_sms_forwarder_key_2026",
           isTelegramEnabled: true,
         };
         needSave = true;
-      } else if (!settings.smsIntegration.telegramBotToken) {
-        settings.smsIntegration.telegramBotToken = process.env.TELEGRAM_BOT_TOKEN || "8974788916:AAEvyNJ3JOO0PPHI9UwPwXNp01T4HJ6XxdA";
+      } else {
+        if (!settings.smsIntegration.telegramBotToken) {
+          settings.smsIntegration.telegramBotToken = process.env.TELEGRAM_BOT_TOKEN || "8974788916:AAEvyNJ3JOO0PPHI9UwPwXNp01T4HJ6XxdA";
+          needSave = true;
+        }
+        if (!settings.smsIntegration.telegramChatId || settings.smsIntegration.telegramChatId === "99999999") {
+          settings.smsIntegration.telegramChatId = process.env.TELEGRAM_ADMIN_CHAT_ID || "-1004457142501";
+          needSave = true;
+        }
         settings.smsIntegration.isTelegramEnabled = true;
-        needSave = true;
       }
 
       if (needSave) {
