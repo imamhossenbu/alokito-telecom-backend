@@ -126,19 +126,19 @@ export const smsWebhookService = {
 
         if (settings.smsIntegration?.isTelegramEnabled !== false && botToken && chatId && !matched) {
           const text =
-            `📥 *নতুন পেমেন্ট SMS গৃহীত হয়েছে!*\n` +
+            `📥 <b>নতুন পেমেন্ট SMS গৃহীত হয়েছে!</b>\n` +
             `━━━━━━━━━━━━━━━━━━━━\n` +
-            `💰 *মাধ্যম:* ${parsed.provider}\n` +
-            `🆔 *TrxID:* \`${parsed.transactionId.toUpperCase()}\`\n` +
-            `💵 *পরিমাণ:* ৳${poishaToBdt(parsed.amount).toFixed(2)}\n` +
-            `📱 *প্রেরক নম্বর:* ${sender}\n` +
-            `📥 *প্রাপক নম্বর:* ${receiverPhone}\n` +
-            `🕒 *লেনদেন সময়:* ${timeBd}\n` +
-            `📊 *স্ট্যাটাস:* 🟡 পেন্ডিং (PENDING / UNUSED)\n` +
+            `💰 <b>মাধ্যম:</b> ${parsed.provider}\n` +
+            `🆔 <b>TrxID:</b> <code>${parsed.transactionId.toUpperCase()}</code>\n` +
+            `💵 <b>পরিমাণ:</b> ৳${poishaToBdt(parsed.amount).toFixed(2)}\n` +
+            `📱 <b>প্রেরক নম্বর:</b> ${sender}\n` +
+            `📥 <b>প্রাপক নম্বর:</b> ${receiverPhone}\n` +
+            `🕒 <b>লেনদেন সময়:</b> ${timeBd}\n` +
+            `📊 <b>স্ট্যাটাস:</b> 🟡 পেন্ডিং (PENDING / UNUSED)\n` +
             `━━━━━━━━━━━━━━━━━━━━\n` +
             `ℹ️ কাস্টমার টাকা পাঠিয়ে অ্যাপ থেকে ভেরিফাই করলে স্বয়ংক্রিয়ভাবে ব্যালেন্স যোগ হবে এবং তখন ভেরিফাইড (VERIFIED) কনফার্মেশন পাবেন।`;
 
-          await this.sendTelegramRawMessage(botToken, chatId, text);
+          await this.sendTelegramRawMessage(botToken, chatId, text, "HTML");
         }
       } catch (_) {}
     }
@@ -162,21 +162,34 @@ export const smsWebhookService = {
   },
 
   /**
-   * Send Telegram message via Bot API
+   * Send Telegram message via Bot API with fallback
    */
-  async sendTelegramRawMessage(botToken: string, chatId: string, text: string) {
+  async sendTelegramRawMessage(botToken: string, chatId: string, text: string, parseMode: "HTML" | "Markdown" = "HTML") {
     if (!botToken || !chatId) return;
     try {
       const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
-      await fetch(url, {
+      const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           chat_id: chatId,
           text,
-          parse_mode: "Markdown",
+          parse_mode: parseMode,
         }),
       });
+
+      if (!res.ok) {
+        // Fallback to plain text if markup parsing failed
+        const plainText = text.replace(/<[^>]*>/g, "").replace(/[*_`#\[\]]/g, "");
+        await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            chat_id: chatId,
+            text: plainText,
+          }),
+        });
+      }
     } catch (err) {
       logger.warn({ err }, "Failed to send Telegram message");
     }

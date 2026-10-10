@@ -405,21 +405,21 @@ export const topUpService = {
             "সিস্টেম নম্বর";
 
           const msg =
-            `🎉 *পেমেন্ট সফলভাবে ভেরিফাইড হয়েছে!*\n` +
+            `🎉 <b>পেমেন্ট সফলভাবে ভেরিফাইড হয়েছে!</b>\n` +
             `━━━━━━━━━━━━━━━━━━━━\n` +
-            `💰 *মাধ্যম:* ${provider}\n` +
-            `🆔 *TrxID:* \`${cleanTxId}\`\n` +
-            `💵 *পরিমাণ:* ৳${poishaToBdt(topUp.amount).toFixed(2)}\n` +
-            `📱 *প্রেরক নম্বর:* ${matchEvent?.sender || topUp.senderPhone || "অনুল্লেখিত"}\n` +
-            `📥 *প্রাপক নম্বর:* ${receiverNum}\n` +
-            `👤 *কাস্টমার মোবাইল:* ${customerPhone || "কাস্টমার"}\n` +
-            `🕒 *ভেরিফাই সময়:* ${bdTime}\n` +
-            `📊 *স্ট্যাটাস:* 🟢 ভেরিফাইড (VERIFIED)\n` +
+            `💰 <b>মাধ্যম:</b> ${provider}\n` +
+            `🆔 <b>TrxID:</b> <code>${cleanTxId}</code>\n` +
+            `💵 <b>পরিমাণ:</b> ৳${poishaToBdt(topUp.amount).toFixed(2)}\n` +
+            `📱 <b>প্রেরক নম্বর:</b> ${matchEvent?.sender || topUp.senderPhone || "অনুল্লেখিত"}\n` +
+            `📥 <b>প্রাপক নম্বর:</b> ${receiverNum}\n` +
+            `👤 <b>কাস্টমার মোবাইল:</b> ${customerPhone || "কাস্টমার"}\n` +
+            `🕒 <b>ভেরিফাই সময়:</b> ${bdTime}\n` +
+            `📊 <b>স্ট্যাটাস:</b> 🟢 ভেরিফাইড (VERIFIED)\n` +
             `━━━━━━━━━━━━━━━━━━━━\n` +
             `✅ কাস্টমার অ্যাকাউন্টে টাকা ক্রেডিট সম্পন্ন হয়েছে!`;
 
           const { smsWebhookService } = await import("../smsWebhook/smsWebhook.service");
-          await smsWebhookService.sendTelegramRawMessage(botToken, chatId, msg);
+          await smsWebhookService.sendTelegramRawMessage(botToken, chatId, msg, "HTML");
         }
       } catch (_) {}
 
