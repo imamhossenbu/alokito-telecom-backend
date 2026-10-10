@@ -43,11 +43,11 @@ export const smsWebhookController = {
         "";
     }
 
-    if (!content && req.query.content) {
-      content = String(req.query.content);
+    if (!content) {
+      content = String(req.query.content || req.query.msg || req.query.message || req.query.text || "");
     }
-    if (!sender && req.query.from) {
-      sender = String(req.query.from);
+    if (!sender) {
+      sender = String(req.query.from || req.query.sender || req.query.phone || "");
     }
 
     if (!content || content.trim().length === 0) {
