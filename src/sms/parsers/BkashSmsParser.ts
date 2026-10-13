@@ -3,10 +3,21 @@ import { bdtToPoisha } from "../../shared/utils/money";
 import { PaymentProvider } from "../../shared/enums";
 
 export class BkashSmsParser implements SmsParser {
-  canParse(smsContent: string): boolean {
+  canParse(smsContent: string, devicePhoneNumber?: string): boolean {
     const lower = smsContent.toLowerCase();
+    const hint = (devicePhoneNumber || "").toLowerCase();
+
+    // Exclude other providers
+    if (lower.includes("nagad") || hint.includes("nagad") || hint.includes("16167")) return false;
+    if (lower.includes("rocket") || hint.includes("rocket") || hint.includes("16216")) return false;
+    if (lower.includes("upay") || hint.includes("upay") || hint.includes("16268") || lower.includes("trxid: up") || lower.includes("trxid:up")) return false;
+
     return (
-      (lower.includes("bkash") || lower.includes("received") || lower.includes("cash in")) &&
+      (lower.includes("bkash") ||
+        hint.includes("bkash") ||
+        lower.includes("received") ||
+        lower.includes("cash in") ||
+        lower.includes("payment")) &&
       lower.includes("trxid")
     );
   }
@@ -19,9 +30,9 @@ export class BkashSmsParser implements SmsParser {
     // Clean commas out of the amount string
     const normalizedContent = smsContent.replace(/,/g, "");
 
-    const trxMatch = normalizedContent.match(/TrxID\s*([A-Za-z0-9]+)/i);
-    const amountMatch = normalizedContent.match(/(?:Tk|tk)\s*(\d+(?:\.\d{1,2})?)/i);
-    const senderMatch = normalizedContent.match(/from\s*(\+?880\d+|\d+)/i);
+    const trxMatch = normalizedContent.match(/TrxID\s*:?\s*([A-Za-z0-9]+)/i);
+    const amountMatch = normalizedContent.match(/(?:Tk|tk|Tk\.)\s*(\d+(?:\.\d{1,2})?)/i);
+    const senderMatch = normalizedContent.match(/(?:from|Sender:?)\s*(\+?880\d+|\d+)/i);
 
     if (!trxMatch) {
       throw new Error("Could not extract bKash TrxID from SMS");

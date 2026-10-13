@@ -3,13 +3,17 @@ import { bdtToPoisha } from "../../shared/utils/money";
 import { PaymentProvider } from "../../shared/enums";
 
 export class RocketSmsParser implements SmsParser {
-  canParse(smsContent: string): boolean {
+  canParse(smsContent: string, devicePhoneNumber?: string): boolean {
     const lower = smsContent.toLowerCase();
+    const hint = (devicePhoneNumber || "").toLowerCase();
+
+    if (lower.includes("bkash") || hint.includes("bkash")) return false;
+    if (lower.includes("nagad") || hint.includes("nagad") || hint.includes("16167")) return false;
+    if (lower.includes("upay") || hint.includes("upay") || hint.includes("16268")) return false;
+
     return (
-      (lower.includes("rocket") || lower.includes("16216") || lower.includes("dbbl")) &&
-      (lower.includes("txnid") || lower.includes("txn id")) &&
-      !lower.includes("nagad") &&
-      !lower.includes("bkash")
+      (lower.includes("rocket") || hint.includes("rocket") || hint.includes("16216") || lower.includes("dbbl")) &&
+      (lower.includes("txnid") || lower.includes("txn id") || lower.includes("trxid"))
     );
   }
 
@@ -19,9 +23,9 @@ export class RocketSmsParser implements SmsParser {
     
     const normalizedContent = smsContent.replace(/,/g, "");
 
-    const txnMatch = normalizedContent.match(/TxnID\s*:\s*([A-Za-z0-9]+)/i);
+    const txnMatch = normalizedContent.match(/(?:TxnID|Txn ID|TrxID)\s*:?\s*([A-Za-z0-9]+)/i);
     const amountMatch = normalizedContent.match(/(?:Tk|tk|Tk\.)\s*(\d+(?:\.\d{1,2})?)/i);
-    const senderMatch = normalizedContent.match(/from\s*(\+?880\d+|\d+)/i);
+    const senderMatch = normalizedContent.match(/(?:from|Sender:?)\s*(\+?880\d+|\d+)/i);
 
     if (!txnMatch) {
       throw new Error("Could not extract Rocket TxnID from SMS");

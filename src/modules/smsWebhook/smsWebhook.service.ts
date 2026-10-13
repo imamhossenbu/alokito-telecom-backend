@@ -26,6 +26,15 @@ export const smsWebhookService = {
       throw new Error("SMS content is empty");
     }
 
+    // 0. Fraud Protection: In Bangladesh, MFS never sends official receipts from personal mobile numbers
+    if (source === "FORWARDER_WEBHOOK" && senderPhone && typeof senderPhone === "string") {
+      const cleanSender = senderPhone.trim().replace(/[\s-]/g, "");
+      if (/^(\+?8801|01)[3-9]\d{8}$/.test(cleanSender)) {
+        logger.warn({ senderPhone, smsContent }, "Rejected SMS from personal mobile number - Potential Fraud Attempt");
+        throw new Error(`ব্যক্তিগত মোবাইল নম্বর (${senderPhone}) থেকে আসা SMS গ্রহণযোগ্য নয়। এটি বিকাশ/নগদ/রকেটের অফিশিয়াল SMS নয়।`);
+      }
+    }
+
     // 1. Normalize and parse SMS
     const parsed = normalizeSms(smsContent.trim(), senderPhone);
 
@@ -35,6 +44,8 @@ export const smsWebhookService = {
       parsed.amount,
       parsed.receivedAt
     );
+
+    const cleanTrxId = parsed.transactionId.trim().toUpperCase();
 
     const settings = await systemSettingsService.getSettings();
     const timeBd = new Intl.DateTimeFormat("en-GB", {
@@ -55,8 +66,13 @@ export const smsWebhookService = {
 
     const sender = parsed.sender || senderPhone || "অনুল্লেখিত / গোপন";
 
-    // 2. Check for duplicate SMS event
-    const existing = await PaymentSmsEventModel.findOne({ smsFingerprint });
+    // 2. Check for duplicate SMS event by fingerprint OR (provider + transactionId)
+    const existing = await PaymentSmsEventModel.findOne({
+      $or: [
+        { smsFingerprint },
+        { provider: parsed.provider, transactionId: cleanTrxId },
+      ],
+    });
     if (existing) {
       const existingBdTime = new Intl.DateTimeFormat("en-GB", {
         timeZone: "Asia/Dhaka",
@@ -122,9 +138,18 @@ export const smsWebhookService = {
           settings.smsIntegration?.telegramBotToken ||
           process.env.TELEGRAM_BOT_TOKEN ||
           "8974788916:AAEvyNJ3JOO0PPHI9UwPwXNp01T4HJ6XxdA";
-        const chatId = settings.smsIntegration?.telegramChatId;
+        const targetChatIds = Array.from(
+          new Set(
+            [
+              settings.smsIntegration?.telegramChatId,
+              process.env.TELEGRAM_ADMIN_CHAT_ID,
+              process.env.TELEGRAM_PERSONAL_CHAT_ID,
+              "-1004457142501",
+            ].filter((id): id is string => Boolean(id && id !== "99999999"))
+          )
+        );
 
-        if (settings.smsIntegration?.isTelegramEnabled !== false && botToken && chatId && !matched) {
+        if (settings.smsIntegration?.isTelegramEnabled !== false && botToken && targetChatIds.length > 0 && !matched) {
           const text =
             `📥 <b>নতুন পেমেন্ট SMS গৃহীত হয়েছে!</b>\n` +
             `━━━━━━━━━━━━━━━━━━━━\n` +
@@ -138,7 +163,9 @@ export const smsWebhookService = {
             `━━━━━━━━━━━━━━━━━━━━\n` +
             `ℹ️ কাস্টমার টাকা পাঠিয়ে অ্যাপ থেকে ভেরিফাই করলে স্বয়ংক্রিয়ভাবে ব্যালেন্স যোগ হবে এবং তখন ভেরিফাইড (VERIFIED) কনফার্মেশন পাবেন।`;
 
-          await this.sendTelegramRawMessage(botToken, chatId, text, "HTML");
+          for (const cid of targetChatIds) {
+            await this.sendTelegramRawMessage(botToken, cid, text, "HTML").catch(() => {});
+          }
         }
       } catch (_) {}
     }

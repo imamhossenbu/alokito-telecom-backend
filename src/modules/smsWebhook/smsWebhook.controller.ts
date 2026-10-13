@@ -12,7 +12,9 @@ export const smsWebhookController = {
     // 1. Verify API key if provided
     const settings = await systemSettingsService.getSettings();
     const expectedKey = settings.smsIntegration?.forwarderApiKey;
-    const providedKey = req.headers["x-api-key"] || req.query.apiKey || req.query.key;
+    const authHeader = (req.headers["authorization"] as string) || "";
+    const authBearer = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : authHeader.trim();
+    const providedKey = (req.headers["x-api-key"] as string) || authBearer || req.query.apiKey || req.query.key;
 
     if (expectedKey && expectedKey.trim().length > 0 && providedKey && providedKey !== expectedKey) {
       return res.status(401).json({ success: false, message: "Invalid API key" });
@@ -48,6 +50,24 @@ export const smsWebhookController = {
     }
     if (!sender) {
       sender = String(req.query.from || req.query.sender || req.query.phone || "");
+    }
+
+    // If forwarder sends HTML formatted template like: "%t - %s (%c)<br/>Message: %m (%d)"
+    if (content && (content.includes("<br/>") || content.includes("<br>") || content.includes("Message:"))) {
+      if (!sender) {
+        const senderMatch = content.match(/^(?:incoming|outgoing)\s*-\s*([^\s(<]+)/i);
+        if (senderMatch && senderMatch[1]) {
+          sender = senderMatch[1].trim();
+        }
+      }
+      const messageMatch = content.match(/Message:\s*([\s\S]+)$/i);
+      if (messageMatch && messageMatch[1]) {
+        let clean = messageMatch[1].trim();
+        clean = clean.replace(/\s*\(\d{2}[./-]\d{2}[./-]\d{4}\s+\d{2}:\d{2}\)$/, "");
+        if (clean.length > 0) {
+          content = clean;
+        }
+      }
     }
 
     if (!content || content.trim().length === 0) {

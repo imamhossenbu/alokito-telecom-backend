@@ -10,6 +10,7 @@ export interface ParsedSms {
 }
 
 export interface SmsParser {
-  canParse(smsContent: string): boolean;
+  canParse(smsContent: string, devicePhoneNumber?: string): boolean;
   parse(smsContent: string, devicePhoneNumber?: string): ParsedSms;
 }
+

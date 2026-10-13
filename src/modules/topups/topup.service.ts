@@ -384,9 +384,18 @@ export const topUpService = {
           settings.smsIntegration?.telegramBotToken ||
           process.env.TELEGRAM_BOT_TOKEN ||
           "8974788916:AAEvyNJ3JOO0PPHI9UwPwXNp01T4HJ6XxdA";
-        const chatId = settings.smsIntegration?.telegramChatId;
+        const targetChatIds = Array.from(
+          new Set(
+            [
+              settings.smsIntegration?.telegramChatId,
+              process.env.TELEGRAM_ADMIN_CHAT_ID,
+              process.env.TELEGRAM_PERSONAL_CHAT_ID,
+              "-1004457142501",
+            ].filter((id): id is string => Boolean(id && id !== "99999999"))
+          )
+        );
 
-        if (settings.smsIntegration?.isTelegramEnabled !== false && botToken && chatId) {
+        if (settings.smsIntegration?.isTelegramEnabled !== false && botToken && targetChatIds.length > 0) {
           const bdTime = new Intl.DateTimeFormat("en-GB", {
             timeZone: "Asia/Dhaka",
             day: "2-digit",
@@ -420,7 +429,9 @@ export const topUpService = {
             `✅ কাস্টমার অ্যাকাউন্টে টাকা ক্রেডিট সম্পন্ন হয়েছে!`;
 
           const { smsWebhookService } = await import("../smsWebhook/smsWebhook.service");
-          await smsWebhookService.sendTelegramRawMessage(botToken, chatId, msg, "HTML");
+          for (const cid of targetChatIds) {
+            await smsWebhookService.sendTelegramRawMessage(botToken, cid, msg, "HTML").catch(() => {});
+          }
         }
       } catch (_) {}
 
