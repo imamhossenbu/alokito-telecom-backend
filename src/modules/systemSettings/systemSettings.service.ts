@@ -64,11 +64,11 @@ export class SystemSettingsService {
       } else {
         if (!settings.appVersion.customer) {
           settings.appVersion.customer = {
-            latestVersion: "1.0.6",
-            buildNumber: 7,
+            latestVersion: "1.0.7",
+            buildNumber: 8,
             downloadUrl: "https://alokito-telecom-backend-1.onrender.com/download/customer",
             forceUpdate: false,
-            releaseNotes: "নামাজের বিরতি ব্যানার, পিন রিসেট ও পরিবর্তন সুবিধা এবং অফার ট্র্যাকিং আপডেট।",
+            releaseNotes: "লেটেস্ট বিল্ড: ড্রাইভ অফার ক্যাটালগ, ফুল SMS ট্র্যাকিং এবং লাইভ সার্ভিস নোটিশ আপডেট।",
           };
           needSave = true;
         } else {
@@ -76,21 +76,21 @@ export class SystemSettingsService {
             settings.appVersion.customer.downloadUrl = "https://alokito-telecom-backend-1.onrender.com/download/customer";
             needSave = true;
           }
-          if ((settings.appVersion.customer.buildNumber || 0) < 7) {
-            settings.appVersion.customer.buildNumber = 7;
-            settings.appVersion.customer.latestVersion = "1.0.6";
-            settings.appVersion.customer.releaseNotes = "নামাজের বিরতি ব্যানার, পিন রিসেট ও পরিবর্তন সুবিধা এবং অফার ট্র্যাকিং আপডেট।";
+          if ((settings.appVersion.customer.buildNumber || 0) < 8) {
+            settings.appVersion.customer.buildNumber = 8;
+            settings.appVersion.customer.latestVersion = "1.0.7";
+            settings.appVersion.customer.releaseNotes = "লেটেস্ট বিল্ড: ড্রাইভ অফার ক্যাটালগ, ফুল SMS ট্র্যাকিং এবং লাইভ সার্ভিস নোটিশ আপডেট।";
             needSave = true;
           }
         }
 
         if (!settings.appVersion.admin) {
           settings.appVersion.admin = {
-            latestVersion: "1.0.4",
-            buildNumber: 5,
+            latestVersion: "1.0.5",
+            buildNumber: 6,
             downloadUrl: "https://alokito-telecom-backend-1.onrender.com/download/admin",
             forceUpdate: false,
-            releaseNotes: "পাসওয়ার্ড পরিবর্তন রেজুলেশন এবং মেম্বার পিন রিসেট সুবিধা।",
+            releaseNotes: "লেটেস্ট বিল্ড: সকল ইনকামিং SMS লগ, ফুল SMS কপি সুবিধা ও পারফরম্যান্স আপডেট।",
           };
           needSave = true;
         } else {
@@ -98,10 +98,10 @@ export class SystemSettingsService {
             settings.appVersion.admin.downloadUrl = "https://alokito-telecom-backend-1.onrender.com/download/admin";
             needSave = true;
           }
-          if ((settings.appVersion.admin.buildNumber || 0) < 5) {
-            settings.appVersion.admin.buildNumber = 5;
-            settings.appVersion.admin.latestVersion = "1.0.4";
-            settings.appVersion.admin.releaseNotes = "পাসওয়ার্ড পরিবর্তন রেজুলেশন এবং মেম্বার পিন রিসেট সুবিধা।";
+          if ((settings.appVersion.admin.buildNumber || 0) < 6) {
+            settings.appVersion.admin.buildNumber = 6;
+            settings.appVersion.admin.latestVersion = "1.0.5";
+            settings.appVersion.admin.releaseNotes = "লেটেস্ট বিল্ড: সকল ইনকামিং SMS লগ, ফুল SMS কপি সুবিধা ও পারফরম্যান্স আপডেট।";
             needSave = true;
           }
         }

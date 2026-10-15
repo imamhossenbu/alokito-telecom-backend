@@ -378,7 +378,7 @@ export function createApp(): Application {
             <h2>Alokito Telecom - Customer App (গ্রাহক অ্যাপ)</h2>
             <div class="badges">
               <span class="badge green">New & Verified</span>
-              <span class="badge">v1.0.4</span>
+              <span class="badge">v1.0.7 (Build 8)</span>
               <span class="badge">Android & Web</span>
             </div>
           </div>
@@ -409,7 +409,7 @@ export function createApp(): Application {
             <h2>Alokito Telecom - Admin App</h2>
             <div class="badges">
               <span class="badge green">Production Ready</span>
-              <span class="badge">v1.0.3</span>
+              <span class="badge">v1.0.5 (Build 6)</span>
               <span class="badge">Android & Web</span>
             </div>
           </div>
