@@ -362,6 +362,7 @@ export const paymentDeviceService = {
         reference: parsed.reference,
         receivedAt: parsed.receivedAt,
         smsFingerprint,
+        rawSms: smsContent.trim(),
         verificationStatus: SmsEventVerificationStatus.UNUSED,
       });
 
@@ -510,16 +511,28 @@ export const paymentDeviceService = {
     return { success: true, message: "Device deleted successfully" };
   },
 
-  // ── Admin: List events for device ─────────────────────
-  async adminGetDeviceEvents(adminId: string, deviceId: string, page = 1, limit = 20) {
-    const filter = { paymentDeviceId: new Types.ObjectId(deviceId), adminId: new Types.ObjectId(adminId) };
+  // ── Admin: List events for device or all SMS events ─────────────────────
+  async adminGetDeviceEvents(adminId: string, deviceId: string, page = 1, limit = 50) {
+    let filter: any = {};
+    if (deviceId && deviceId !== "all" && Types.ObjectId.isValid(deviceId)) {
+      filter = { paymentDeviceId: new Types.ObjectId(deviceId) };
+    }
     const total = await PaymentSmsEventModel.countDocuments(filter);
     const docs = await PaymentSmsEventModel.find(filter)
-      .sort({ receivedAt: -1 })
+      .sort({ receivedAt: -1, createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit);
 
-    return { total, page, limit, docs };
+    const formattedDocs = docs.map((doc) => {
+      const obj = doc.toObject();
+      return {
+        ...obj,
+        amountPoisha: obj.amount,
+        amount: obj.amount > 0 ? obj.amount / 100 : 0,
+      };
+    });
+
+    return { total, page, limit, docs: formattedDocs };
   },
 
   // ── Device: Disconnect ────────────────────────────────

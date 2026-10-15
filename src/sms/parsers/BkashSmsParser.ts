@@ -32,8 +32,6 @@ export class BkashSmsParser implements SmsParser {
 
     const trxMatch = normalizedContent.match(/TrxID\s*:?\s*([A-Za-z0-9]+)/i);
     const amountMatch = normalizedContent.match(/(?:Tk|tk|Tk\.)\s*(\d+(?:\.\d{1,2})?)/i);
-    const senderMatch = normalizedContent.match(/(?:from|Sender:?)\s*(\+?880\d+|\d+)/i);
-
     if (!trxMatch) {
       throw new Error("Could not extract bKash TrxID from SMS");
     }
@@ -44,7 +42,12 @@ export class BkashSmsParser implements SmsParser {
     const transactionId = trxMatch[1];
     const amountBdt = parseFloat(amountMatch[1]);
     const amount = bdtToPoisha(amountBdt);
-    const sender = senderMatch ? senderMatch[1] : undefined;
+
+    let sender: string | undefined;
+    const senderMatch = normalizedContent.match(/(?:from|Sender:?)\s*([+0-9*xX.-]{4,25})/i);
+    if (senderMatch) {
+      sender = senderMatch[1].replace(/[.,]+$/, "").trim();
+    }
 
     // Parse date if available
     let receivedAt = new Date();

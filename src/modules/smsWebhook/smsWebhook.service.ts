@@ -114,7 +114,8 @@ export const smsWebhookService = {
       reference: parsed.reference,
       receivedAt: parsed.receivedAt || new Date(),
       smsFingerprint,
-      parserVersion: "2.0.0",
+      rawSms: smsContent.trim(),
+      parserVersion: "2.1.0",
       verificationStatus: SmsEventVerificationStatus.UNUSED,
     });
 
@@ -156,12 +157,14 @@ export const smsWebhookService = {
             `💰 <b>মাধ্যম:</b> ${parsed.provider}\n` +
             `🆔 <b>TrxID:</b> <code>${parsed.transactionId.toUpperCase()}</code>\n` +
             `💵 <b>পরিমাণ:</b> ৳${poishaToBdt(parsed.amount).toFixed(2)}\n` +
-            `📱 <b>প্রেরক নম্বর:</b> ${sender}\n` +
+            `📱 <b>প্রেরক নম্বর:</b> <code>${sender}</code>\n` +
             `📥 <b>প্রাপক নম্বর:</b> ${receiverPhone}\n` +
             `🕒 <b>লেনদেন সময়:</b> ${timeBd}\n` +
             `📊 <b>স্ট্যাটাস:</b> 🟡 পেন্ডিং (PENDING / UNUSED)\n` +
             `━━━━━━━━━━━━━━━━━━━━\n` +
-            `ℹ️ কাস্টমার টাকা পাঠিয়ে অ্যাপ থেকে ভেরিফাই করলে স্বয়ংক্রিয়ভাবে ব্যালেন্স যোগ হবে এবং তখন ভেরিফাইড (VERIFIED) কনফার্মেশন পাবেন।`;
+            `✉️ <b>সম্পূর্ণ SMS:</b>\n<code>${smsContent.trim()}</code>\n` +
+            `━━━━━━━━━━━━━━━━━━━━\n` +
+            `ℹ️ কাস্টমার টাকা পাঠিয়ে অ্যাপ থেকে ভেরিফাই করলে স্বয়ংক্রিয়ভাবে ব্যালেন্স যোগ হবে।`;
 
           for (const cid of targetChatIds) {
             await this.sendTelegramRawMessage(botToken, cid, text, "HTML").catch(() => {});

@@ -22,6 +22,8 @@ export interface PaymentSmsEventDocument extends Document {
   receiver?: string;
   reference?: string;
   receivedAt: Date;
+  /** Full raw SMS text content as received */
+  rawSms?: string;
   /** Unique hash to avoid duplicate SMS events */
   smsFingerprint: string;
   parserVersion: string;
@@ -42,6 +44,7 @@ const paymentSmsEventSchema = new Schema<PaymentSmsEventDocument>(
     sender: { type: String },
     receiver: { type: String },
     reference: { type: String },
+    rawSms: { type: String },
     receivedAt: { type: Date, required: true },
     smsFingerprint: { type: String, required: true, unique: true },
     parserVersion: { type: String, required: true, default: "1.0.0" },

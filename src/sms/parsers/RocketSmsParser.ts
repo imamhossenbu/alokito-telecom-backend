@@ -25,7 +25,7 @@ export class RocketSmsParser implements SmsParser {
 
     const txnMatch = normalizedContent.match(/(?:TxnID|Txn ID|TrxID)\s*:?\s*([A-Za-z0-9]+)/i);
     const amountMatch = normalizedContent.match(/(?:Tk|tk|Tk\.)\s*(\d+(?:\.\d{1,2})?)/i);
-    const senderMatch = normalizedContent.match(/(?:from|Sender:?)\s*(\+?880\d+|\d+)/i);
+    const senderMatch = normalizedContent.match(/(?:from|Sender:?)\s*([+0-9*xX.-]{4,25})/i);
 
     if (!txnMatch) {
       throw new Error("Could not extract Rocket TxnID from SMS");
@@ -37,7 +37,7 @@ export class RocketSmsParser implements SmsParser {
     const transactionId = txnMatch[1];
     const amountBdt = parseFloat(amountMatch[1]);
     const amount = bdtToPoisha(amountBdt);
-    const sender = senderMatch ? senderMatch[1] : undefined;
+    const sender = senderMatch ? senderMatch[1].replace(/[.,]+$/, "").trim() : undefined;
 
     // Parse date if available
     let receivedAt = new Date();
