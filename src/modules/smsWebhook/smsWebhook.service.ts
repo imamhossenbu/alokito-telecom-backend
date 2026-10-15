@@ -58,10 +58,14 @@ export const smsWebhookService = {
       hour12: true,
     }).format(parsed.receivedAt || new Date());
 
-    const receiverPhone =
-      parsed.receiver ||
+    const isPhoneNumber = (val?: string) => Boolean(val && /^(\+?8801|01)\d+/.test(val.replace(/[\s-]/g, "")));
+    const systemReceiver =
       (settings.paymentNumbers as any)?.[parsed.provider.toLowerCase()]?.number ||
-      (settings.fallbackPaymentNumbers as any)?.[parsed.provider.toLowerCase()] ||
+      (settings.fallbackPaymentNumbers as any)?.[parsed.provider.toLowerCase()];
+
+    const receiverPhone =
+      (isPhoneNumber(parsed.receiver) ? parsed.receiver : undefined) ||
+      systemReceiver ||
       "সিস্টেম নম্বর";
 
     const sender = parsed.sender || senderPhone || "অনুল্লেখিত / গোপন";
