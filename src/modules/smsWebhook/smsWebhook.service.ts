@@ -20,7 +20,8 @@ export const smsWebhookService = {
   async ingestSmsContent(
     smsContent: string,
     senderPhone?: string,
-    source: "FORWARDER_WEBHOOK" | "TELEGRAM_BOT" | "MANUAL" = "FORWARDER_WEBHOOK"
+    source: "FORWARDER_WEBHOOK" | "TELEGRAM_BOT" | "MANUAL" = "FORWARDER_WEBHOOK",
+    explicitReceiver?: string
   ) {
     if (!smsContent || typeof smsContent !== "string" || smsContent.trim().length === 0) {
       throw new Error("SMS content is empty");
@@ -64,6 +65,7 @@ export const smsWebhookService = {
       (settings.fallbackPaymentNumbers as any)?.[parsed.provider.toLowerCase()];
 
     const receiverPhone =
+      (isPhoneNumber(explicitReceiver) ? explicitReceiver : undefined) ||
       (isPhoneNumber(parsed.receiver) ? parsed.receiver : undefined) ||
       systemReceiver ||
       "সিস্টেম নম্বর";
