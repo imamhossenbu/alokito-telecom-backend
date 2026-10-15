@@ -20,8 +20,7 @@ export const smsWebhookService = {
   async ingestSmsContent(
     smsContent: string,
     senderPhone?: string,
-    source: "FORWARDER_WEBHOOK" | "TELEGRAM_BOT" | "MANUAL" = "FORWARDER_WEBHOOK",
-    explicitReceiver?: string
+    source: "FORWARDER_WEBHOOK" | "TELEGRAM_BOT" | "MANUAL" = "FORWARDER_WEBHOOK"
   ) {
     if (!smsContent || typeof smsContent !== "string" || smsContent.trim().length === 0) {
       throw new Error("SMS content is empty");
@@ -59,17 +58,6 @@ export const smsWebhookService = {
       hour12: true,
     }).format(parsed.receivedAt || new Date());
 
-    const isPhoneNumber = (val?: string) => Boolean(val && /^(\+?8801|01)\d+/.test(val.replace(/[\s-]/g, "")));
-    const systemReceiver =
-      (settings.paymentNumbers as any)?.[parsed.provider.toLowerCase()]?.number ||
-      (settings.fallbackPaymentNumbers as any)?.[parsed.provider.toLowerCase()];
-
-    const receiverPhone =
-      (isPhoneNumber(explicitReceiver) ? explicitReceiver : undefined) ||
-      (isPhoneNumber(parsed.receiver) ? parsed.receiver : undefined) ||
-      systemReceiver ||
-      "সিস্টেম নম্বর";
-
     const sender = parsed.sender || senderPhone || "অনুল্লেখিত / গোপন";
 
     // 2. Check for duplicate SMS event by fingerprint OR (provider + transactionId)
@@ -97,7 +85,6 @@ export const smsWebhookService = {
         transactionId: existing.transactionId,
         amount: poishaToBdt(existing.amount),
         senderPhone: existing.sender || sender,
-        receiverPhone: existing.receiver || receiverPhone,
         timeBd: existingBdTime,
         verificationStatus: existing.verificationStatus,
         message: "SMS ইতিমধ্যে সিস্টেমে রিসিভ করা হয়েছে",
@@ -116,7 +103,6 @@ export const smsWebhookService = {
       transactionId: parsed.transactionId.toUpperCase(),
       amount: parsed.amount,
       sender,
-      receiver: receiverPhone,
       reference: parsed.reference,
       receivedAt: parsed.receivedAt || new Date(),
       smsFingerprint,
@@ -164,7 +150,6 @@ export const smsWebhookService = {
             `🆔 <b>TrxID:</b> <code>${parsed.transactionId.toUpperCase()}</code>\n` +
             `💵 <b>পরিমাণ:</b> ৳${poishaToBdt(parsed.amount).toFixed(2)}\n` +
             `📱 <b>প্রেরক নম্বর:</b> <code>${sender}</code>\n` +
-            `📥 <b>প্রাপক নম্বর:</b> ${receiverPhone}\n` +
             `🕒 <b>লেনদেন সময়:</b> ${timeBd}\n` +
             `📊 <b>স্ট্যাটাস:</b> 🟡 পেন্ডিং (PENDING / UNUSED)\n` +
             `━━━━━━━━━━━━━━━━━━━━\n` +
@@ -186,7 +171,6 @@ export const smsWebhookService = {
       transactionId: parsed.transactionId.toUpperCase(),
       amount: poishaToBdt(parsed.amount),
       senderPhone: sender,
-      receiverPhone,
       timeBd,
       matched,
       matchedUserPhone,
@@ -306,7 +290,6 @@ export const smsWebhookService = {
             `🆔 *TrxID:* \`${result.transactionId}\`\n` +
             `💵 *পরিমাণ:* ৳${result.amount.toFixed(2)}\n` +
             `📱 *প্রেরক নম্বর:* ${result.senderPhone}\n` +
-            `📥 *প্রাপক নম্বর:* ${result.receiverPhone}\n` +
             (result.matchedUserPhone ? `👤 *কাস্টমার মোবাইল:* ${result.matchedUserPhone}\n` : "") +
             `🕒 *সময়:* ${result.timeBd}\n` +
             `📊 *স্ট্যাটাস:* 🟢 ভেরিফাইড (VERIFIED)\n` +
@@ -320,7 +303,6 @@ export const smsWebhookService = {
             `🆔 *TrxID:* \`${result.transactionId}\`\n` +
             `💵 *পরিমাণ:* ৳${result.amount.toFixed(2)}\n` +
             `📱 *প্রেরক নম্বর:* ${result.senderPhone}\n` +
-            `📥 *প্রাপক নম্বর:* ${result.receiverPhone}\n` +
             `🕒 *সময়:* ${result.timeBd}\n` +
             `📊 *স্ট্যাটাস:* 🔴 ইতিমধ্যে ব্যবহৃত (ALREADY USED)\n` +
             `━━━━━━━━━━━━━━━━━━━━\n` +
@@ -333,7 +315,6 @@ export const smsWebhookService = {
             `🆔 *TrxID:* \`${result.transactionId}\`\n` +
             `💵 *পরিমাণ:* ৳${result.amount.toFixed(2)}\n` +
             `📱 *প্রেরক নম্বর:* ${result.senderPhone}\n` +
-            `📥 *প্রাপক নম্বর:* ${result.receiverPhone}\n` +
             `🕒 *লেনদেন সময়:* ${result.timeBd}\n` +
             `📊 *স্ট্যাটাস:* 🟡 পেন্ডিং (PENDING / UNUSED)\n` +
             `━━━━━━━━━━━━━━━━━━━━\n` +

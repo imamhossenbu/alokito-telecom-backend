@@ -407,12 +407,6 @@ export const topUpService = {
           }).format(new Date());
 
           const provider = topUp.paymentProvider || matchEvent?.provider || "MFS";
-          const receiverNum =
-            topUp.paymentNumber ||
-            matchEvent?.receiver ||
-            (settings.paymentNumbers as any)?.[provider.toLowerCase()]?.number ||
-            (settings.fallbackPaymentNumbers as any)?.[provider.toLowerCase()] ||
-            "সিস্টেম নম্বর";
 
           const msg =
             `🎉 <b>পেমেন্ট সফলভাবে ভেরিফাইড হয়েছে!</b>\n` +
@@ -421,7 +415,6 @@ export const topUpService = {
             `🆔 <b>TrxID:</b> <code>${cleanTxId}</code>\n` +
             `💵 <b>পরিমাণ:</b> ৳${poishaToBdt(topUp.amount).toFixed(2)}\n` +
             `📱 <b>প্রেরক নম্বর:</b> ${matchEvent?.sender || topUp.senderPhone || "অনুল্লেখিত"}\n` +
-            `📥 <b>প্রাপক নম্বর:</b> ${receiverNum}\n` +
             `👤 <b>কাস্টমার মোবাইল:</b> ${customerPhone || "কাস্টমার"}\n` +
             `🕒 <b>ভেরিফাই সময়:</b> ${bdTime}\n` +
             `📊 <b>স্ট্যাটাস:</b> 🟢 ভেরিফাইড (VERIFIED)\n` +
@@ -762,7 +755,6 @@ export const topUpService = {
             `💵 <b>পরিমাণ:</b> ৳${poishaToBdt(topUp.amount).toFixed(2)}\n` +
             `👤 <b>কাস্টমার:</b> ${customer?.name || "গ্রাহক"} (${customer?.phone || ""})\n` +
             `📱 <b>প্রেরক নম্বর:</b> ${topUp.senderPhone || "অনুল্লেখিত"}\n` +
-            `📥 <b>প্রাপক নম্বর:</b> ${topUp.paymentNumber || "সিস্টেম নম্বর"}\n` +
             `🕒 <b>অনুমোদনের সময়:</b> ${bdTime} (BST)\n` +
             `📊 <b>স্ট্যাটাস:</b> 🟢 ভেরিফাইড (VERIFIED)\n` +
             `📝 <b>অ্যাডমিন নোট:</b> ${adminNote || "ম্যানুয়ালি যাচাই করে ভেরিফাই করা হয়েছে"}\n` +

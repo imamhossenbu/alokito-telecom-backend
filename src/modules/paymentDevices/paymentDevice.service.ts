@@ -358,7 +358,6 @@ export const paymentDeviceService = {
         transactionId: parsed.transactionId.toUpperCase(),
         amount: parsed.amount,
         sender: parsed.sender,
-        receiver: parsed.receiver,
         reference: parsed.reference,
         receivedAt: parsed.receivedAt,
         smsFingerprint,

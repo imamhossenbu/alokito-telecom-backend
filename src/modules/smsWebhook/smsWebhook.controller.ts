@@ -23,7 +23,6 @@ export const smsWebhookController = {
     // 2. Extract SMS content and sender across various SMS Forwarder JSON schemas
     let content = "";
     let sender = "";
-    let receiver = "";
 
     if (typeof req.body === "string") {
       content = req.body;
@@ -44,13 +43,6 @@ export const smsWebhookController = {
         req.body.sender_number ||
         req.body.originatingAddress ||
         "";
-      receiver =
-        req.body.to ||
-        req.body.receiver ||
-        req.body.receiver_phone ||
-        req.body.sim_number ||
-        req.body.dest ||
-        "";
     }
 
     if (!content) {
@@ -58,9 +50,6 @@ export const smsWebhookController = {
     }
     if (!sender) {
       sender = String(req.query.from || req.query.sender || req.query.phone || "");
-    }
-    if (!receiver) {
-      receiver = String(req.query.to || req.query.receiver || req.query.sim || "");
     }
 
     // If forwarder sends HTML formatted template like: "%t - %s (%c)<br/>Message: %m (%d)"
@@ -90,7 +79,7 @@ export const smsWebhookController = {
     }
 
     try {
-      const result = await smsWebhookService.ingestSmsContent(content, sender, "FORWARDER_WEBHOOK", receiver);
+      const result = await smsWebhookService.ingestSmsContent(content, sender, "FORWARDER_WEBHOOK");
       return res.status(200).json({
         success: true,
         message: result.message,
