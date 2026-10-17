@@ -204,10 +204,16 @@ export const adminUserService = {
 
   /** Admin PIN reset — new temp or custom PIN, sessions revoked. */
   async resetPin(id: string, newCustomPin?: string) {
-    const userId = new Types.ObjectId(id);
-    const user = await userRepository.findById(userId);
+    let user = null;
+    if (Types.ObjectId.isValid(id)) {
+      user = await userRepository.findById(new Types.ObjectId(id));
+    }
+    if (!user) {
+      user = (await userRepository.findByPhone(id)) || (await userRepository.findByEmailNormalized(id.toLowerCase().trim()));
+    }
     if (!user) throw new NotFoundError("USER_NOT_FOUND", "User not found");
 
+    const userId = user._id;
     const temporaryPin = newCustomPin && newCustomPin.trim().length >= 4
       ? newCustomPin.trim()
       : generateTemporaryPin(6);
@@ -216,14 +222,24 @@ export const adminUserService = {
     await authRepository.revokeAllSessionsForUser(userId, "ADMIN_PIN_RESET");
     await authRepository.revokeAllTrustedDevicesForUser(userId);
 
-    const { subject, html } = pinResetEmailTemplate({ temporaryPin });
-    try {
-      await queueEmail({ to: user.email, subject, html });
-    } catch (err) {
-      logger.error({ err, userId: id }, "Failed to queue PIN reset email");
+    if (user.email && user.email.includes("@") && !user.email.endsWith("@telecom.bd")) {
+      const { subject, html } = pinResetEmailTemplate({ temporaryPin });
+      try {
+        await queueEmail({ to: user.email, subject, html });
+      } catch (err) {
+        logger.error({ err, userId: id }, "Failed to queue PIN reset email");
+      }
     }
 
-    return { temporaryPin };
+    return {
+      temporaryPin,
+      user: {
+        id: user._id.toString(),
+        name: user.name,
+        phone: user.phone,
+        email: user.email,
+      },
+    };
   },
 
   /** Soft delete (spec section 118) — financial history is never removed. */

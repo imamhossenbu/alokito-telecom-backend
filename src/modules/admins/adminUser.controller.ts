@@ -69,6 +69,7 @@ export const adminUserController = {
       data: {
         pinReset: true,
         newPin: result.temporaryPin,
+        user: result.user,
         message: `User PIN reset successfully to ${result.temporaryPin}`,
       },
     });

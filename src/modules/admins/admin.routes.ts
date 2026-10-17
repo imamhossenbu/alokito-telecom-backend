@@ -244,6 +244,24 @@ router.get(
   adminMiddleware,
   asyncHandler(paymentDeviceController.adminGetDeviceEvents),
 );
+router.get(
+  "/sms-logs",
+  adminMiddleware,
+  asyncHandler((req, res) => {
+    req.params.id = "all";
+    return paymentDeviceController.adminGetDeviceEvents(req, res);
+  }),
+);
+router.get(
+  "/sms-logs/:id/candidates",
+  adminMiddleware,
+  asyncHandler(paymentDeviceController.adminGetSmsCandidates),
+);
+router.post(
+  "/sms-logs/:id/manual-credit",
+  adminMiddleware,
+  asyncHandler(paymentDeviceController.adminManualCreditFromSms),
+);
 
 // ── Order management ──────────────────────────────────
 router.get(

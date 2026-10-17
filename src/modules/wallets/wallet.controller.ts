@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { walletService } from "./wallet.service";
 import { sendSuccess } from "../../shared/utils/api-response";
-import { UnauthorizedError } from "../../shared/errors/app-error";
+import { UnauthorizedError, AppError } from "../../shared/errors/app-error";
 
 function getActorUserId(req: Request): string {
   if (!req.actor || req.actor.type !== "CUSTOMER") {
@@ -35,10 +35,22 @@ export const walletController = {
     if (!req.actor || req.actor.type !== "ADMIN") {
       throw new UnauthorizedError();
     }
-    const { userId, amount, action, reason } = req.body;
+    const targetUserId = (req.body.userId || req.body.customerId || req.params.id)?.toString();
+    const rawAmount = req.body.amountBdt ?? req.body.amount;
+    const { action, reason } = req.body;
+
+    if (!targetUserId) {
+      throw new AppError("VALIDATION_ERROR", "User ID or phone number is required", 400);
+    }
+
+    const parsedAmount = typeof rawAmount === "number" ? rawAmount : parseFloat(rawAmount);
+    if (isNaN(parsedAmount) || parsedAmount <= 0) {
+      throw new AppError("VALIDATION_ERROR", "Valid amount greater than 0 is required", 400);
+    }
+
     const result = await walletService.adminAdjustBalance({
-      userId,
-      amountBdt: parseFloat(amount),
+      userId: targetUserId,
+      amountBdt: parsedAmount,
       action: action === "DEBIT" ? "DEBIT" : "CREDIT",
       reason: reason || "Manual Admin Adjustment",
       adminId: req.actor.adminId,

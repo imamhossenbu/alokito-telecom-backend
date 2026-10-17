@@ -62,12 +62,40 @@ export const paymentDeviceController = {
       throw new UnauthorizedError();
     }
     const page = req.query.page ? parseInt(req.query.page as string, 10) : 1;
-    const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 20;
+    const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 50;
+    const provider = req.query.provider as string | undefined;
+    const status = req.query.status as string | undefined;
+    const search = req.query.search as string | undefined;
+
     const result = await paymentDeviceService.adminGetDeviceEvents(
       req.actor.adminId,
-      req.params.id,
+      req.params.id || "all",
       page,
-      limit
+      limit,
+      { provider, status, search }
+    );
+    sendSuccess(res, { data: result });
+  },
+
+  async adminGetSmsCandidates(req: Request, res: Response) {
+    if (!req.actor || req.actor.type !== "ADMIN") {
+      throw new UnauthorizedError();
+    }
+    const result = await paymentDeviceService.adminGetSmsCandidates(
+      req.actor.adminId,
+      req.params.id
+    );
+    sendSuccess(res, { data: result });
+  },
+
+  async adminManualCreditFromSms(req: Request, res: Response) {
+    if (!req.actor || req.actor.type !== "ADMIN") {
+      throw new UnauthorizedError();
+    }
+    const result = await paymentDeviceService.adminManualCreditFromSms(
+      req.actor.adminId,
+      req.params.id,
+      req.body
     );
     sendSuccess(res, { data: result });
   },

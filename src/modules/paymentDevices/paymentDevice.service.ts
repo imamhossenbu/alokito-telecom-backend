@@ -60,7 +60,7 @@ async function syncDeviceNumbersToSystemSettings(device: any) {
         if (io) {
           io.emit("payment_methods_updated", fallbacks);
         }
-      } catch (_) {}
+      } catch (_) { }
     }
   } catch (err) {
     logger.warn({ err }, "Could not sync device numbers to system settings");
@@ -297,13 +297,13 @@ export const paymentDeviceService = {
 
     // Listener app expects the device document in 'data.device' to keep local state synced
     // Make sure to map _id to id so Flutter can parse it
-    return { 
-      success: true, 
+    return {
+      success: true,
       device: {
         ...device.toObject(),
         id: device._id.toString(),
         adminId: device.adminId.toString(),
-      } 
+      }
     };
   },
 
@@ -382,7 +382,7 @@ export const paymentDeviceService = {
           try {
             const { topUpService } = await import("../topups/topup.service");
             await topUpService.autoMatchPendingTopUp(existing);
-          } catch (_) {}
+          } catch (_) { }
         }
         return { success: true, eventId: existing?._id.toString(), duplicate: true };
       }
@@ -393,10 +393,10 @@ export const paymentDeviceService = {
   // ── Admin: List devices ───────────────────────────────
   async adminGetDevices(adminId: string) {
     const devices = await PaymentDeviceModel.find({ adminId: new Types.ObjectId(adminId) });
-    
+
     // Dynamically flag disconnected devices based on heartbeat timeout
     const threshold = Date.now() - env.DEVICE_HEARTBEAT_TIMEOUT_SECONDS * 1000;
-    
+
     for (const device of devices) {
       if (
         device.status === PaymentDeviceStatus.CONNECTED &&
@@ -511,10 +511,31 @@ export const paymentDeviceService = {
   },
 
   // ── Admin: List events for device or all SMS events ─────────────────────
-  async adminGetDeviceEvents(adminId: string, deviceId: string, page = 1, limit = 50) {
+  async adminGetDeviceEvents(
+    adminId: string,
+    deviceId: string,
+    page = 1,
+    limit = 50,
+    options?: { provider?: string; status?: string; search?: string }
+  ) {
     let filter: any = {};
     if (deviceId && deviceId !== "all" && Types.ObjectId.isValid(deviceId)) {
-      filter = { paymentDeviceId: new Types.ObjectId(deviceId) };
+      filter.paymentDeviceId = new Types.ObjectId(deviceId);
+    }
+    if (options?.provider && options.provider !== "ALL") {
+      filter.provider = options.provider.toUpperCase();
+    }
+    if (options?.status && options.status !== "ALL") {
+      filter.verificationStatus = options.status.toUpperCase();
+    }
+    if (options?.search && options.search.trim().length > 0) {
+      const q = options.search.trim();
+      filter.$or = [
+        { transactionId: { $regex: q, $options: "i" } },
+        { sender: { $regex: q, $options: "i" } },
+        { receiver: { $regex: q, $options: "i" } },
+        { rawSms: { $regex: q, $options: "i" } },
+      ];
     }
     const total = await PaymentSmsEventModel.countDocuments(filter);
     const docs = await PaymentSmsEventModel.find(filter)
@@ -610,10 +631,10 @@ export const paymentDeviceService = {
           });
         }
       }
-    } catch (_) {}
+    } catch (_) { }
 
     const threshold = Date.now() - env.DEVICE_HEARTBEAT_TIMEOUT_SECONDS * 1000;
-    
+
     // 2. Check connected devices if any providers still not covered
     const devices = await PaymentDeviceModel.find({
       status: PaymentDeviceStatus.CONNECTED,
@@ -732,7 +753,7 @@ export const paymentDeviceService = {
       if (fallbacks?.upay && (!existingProviders.has("UPAY") || activeMethods.length === 0)) {
         activeMethods.push({ provider: "UPAY", paymentNumber: fallbacks.upay, status: "AVAILABLE" });
       }
-    } catch (_) {}
+    } catch (_) { }
 
     // Deduplicate by provider: keep the first (highest priority) non-empty number
     const deduped: typeof activeMethods = [];
@@ -746,5 +767,262 @@ export const paymentDeviceService = {
     }
 
     return deduped;
+  },
+
+  // ── Admin: Get candidate suggestions for an SMS event ──
+  async adminGetSmsCandidates(adminId: string, eventId: string) {
+    const event = await PaymentSmsEventModel.findById(eventId);
+    if (!event) {
+      throw new NotFoundError("NOT_FOUND", "SMS event not found");
+    }
+
+    const { UserModel } = await import("../users/user.model");
+    const { TopUpModel, TopUpStatus } = await import("../topups/topup.model");
+
+    let matchedUser = null;
+    if (event.sender) {
+      const cleanDigits = event.sender.replace(/[^0-9]/g, "");
+      if (cleanDigits.length >= 8) {
+        const last8 = cleanDigits.slice(-8);
+        matchedUser = await UserModel.findOne({
+          phone: { $regex: last8 },
+        }).select("_id name phone email");
+      }
+    }
+
+    const pendingTopUps = await TopUpModel.find({
+      status: { $in: [TopUpStatus.PENDING, TopUpStatus.VERIFYING] },
+    })
+      .populate("userId", "name phone email")
+      .sort({ createdAt: -1 })
+      .limit(10);
+
+    const formattedPending = pendingTopUps.map((t: any) => {
+      const u = t.userId || {};
+      return {
+        id: t._id.toString(),
+        amountPoisha: t.amount,
+        amountBdt: t.amount / 100,
+        provider: t.paymentProvider,
+        customerTransactionId: t.customerTransactionId,
+        senderPhone: t.senderPhone,
+        userId: u._id?.toString() || t.userId?.toString(),
+        userName: u.name || "Customer",
+        userPhone: u.phone || "",
+        createdAt: t.createdAt,
+      };
+    });
+
+    return {
+      event: {
+        id: event._id.toString(),
+        provider: event.provider,
+        transactionId: event.transactionId,
+        amountPoisha: event.amount,
+        amountBdt: event.amount > 0 ? event.amount / 100 : 0,
+        sender: event.sender,
+        verificationStatus: event.verificationStatus,
+        receivedAt: event.receivedAt,
+        rawSms: event.rawSms,
+      },
+      matchedUser: matchedUser
+        ? {
+            id: matchedUser._id.toString(),
+            name: matchedUser.name,
+            phone: matchedUser.phone,
+            email: matchedUser.email,
+          }
+        : null,
+      pendingTopUps: formattedPending,
+    };
+  },
+
+  // ── Admin: Manually credit customer wallet from SMS log ──
+  async adminManualCreditFromSms(
+    adminId: string,
+    eventId: string,
+    data: {
+      userId?: string;
+      customerId?: string;
+      topUpId?: string;
+      amountBdt?: number;
+      amount?: number;
+      reason?: string;
+    }
+  ) {
+    const event = await PaymentSmsEventModel.findById(eventId);
+    if (!event) {
+      throw new NotFoundError("NOT_FOUND", "SMS log event not found");
+    }
+
+    if (event.verificationStatus === SmsEventVerificationStatus.MATCHED) {
+      throw new AppError("PAYMENT_TRANSACTION_ALREADY_USED", "This SMS event is already matched or verified", 400);
+    }
+
+    const targetUserId = (data.userId || data.customerId)?.toString();
+    if (!targetUserId) {
+      throw new AppError("VALIDATION_ERROR", "User ID or phone number is required", 400);
+    }
+
+    const { UserModel } = await import("../users/user.model");
+    let user = null;
+    if (mongoose.Types.ObjectId.isValid(targetUserId)) {
+      user = await UserModel.findById(targetUserId);
+    }
+    if (!user) {
+      user = await UserModel.findOne({ phone: targetUserId });
+    }
+    if (!user) {
+      user = await UserModel.findOne({ email: targetUserId.toLowerCase() });
+    }
+    if (!user) {
+      throw new NotFoundError("USER_NOT_FOUND", "Customer not found");
+    }
+
+    let creditAmountBdt = data.amountBdt ?? data.amount;
+    let creditAmountPoisha: number;
+    if (creditAmountBdt !== undefined && creditAmountBdt !== null && !isNaN(Number(creditAmountBdt))) {
+      creditAmountPoisha = Math.round(Number(creditAmountBdt) * 100);
+      creditAmountBdt = Number(creditAmountBdt);
+    } else {
+      creditAmountPoisha = event.amount;
+      creditAmountBdt = event.amount / 100;
+    }
+
+    if (creditAmountPoisha <= 0) {
+      throw new AppError("VALIDATION_ERROR", "Valid amount greater than 0 is required", 400);
+    }
+
+    const { walletRepository } = await import("../wallets/wallet.repository");
+    const { walletTransactionRepository } = await import("../walletTransactions/walletTransaction.repository");
+    const { TopUpModel, TopUpStatus } = await import("../topups/topup.model");
+    const { auditLogService } = await import("../auditLogs/auditLog.service");
+    const { ActorType } = await import("../auditLogs/auditLog.model");
+    const { notificationService } = await import("../notifications/notification.service");
+
+    const mongoSession = await mongoose.startSession();
+    let finalBalance = 0;
+    let matchedTopUp: any = null;
+
+    try {
+      await mongoSession.withTransaction(async () => {
+        let wallet = await walletRepository.findByUserId(user!._id, mongoSession);
+        if (!wallet) {
+          wallet = await walletRepository.createForUser(user!._id, mongoSession);
+        }
+
+        const balanceBefore = wallet.balance;
+        const balanceAfter = balanceBefore + creditAmountPoisha;
+
+        const credited = await walletRepository.creditBalance(user!._id, creditAmountPoisha, mongoSession);
+        if (!credited) {
+          throw new AppError("INTERNAL_ERROR", "Failed to credit customer wallet", 500);
+        }
+
+        if (data.topUpId) {
+          matchedTopUp = await TopUpModel.findById(data.topUpId).session(mongoSession);
+        }
+        if (!matchedTopUp) {
+          matchedTopUp = await TopUpModel.findOne({
+            userId: user!._id,
+            status: { $in: [TopUpStatus.PENDING, TopUpStatus.VERIFYING] },
+            $or: [
+              { customerTransactionId: event.transactionId },
+              { amount: creditAmountPoisha },
+            ],
+          }).session(mongoSession);
+        }
+
+        const description = data.reason ||
+          `Manual Credit from SMS by Admin (${event.provider} TrxID: ${event.transactionId})`;
+
+        const wTx = await walletTransactionRepository.create(
+          {
+            userId: user!._id,
+            walletId: wallet._id,
+            type: "TOP_UP",
+            direction: "CREDIT",
+            amount: creditAmountPoisha,
+            balanceBefore,
+            balanceAfter,
+            referenceType: matchedTopUp ? "TOP_UP" : "ADMIN_ADJUSTMENT",
+            referenceId: matchedTopUp?._id || event._id,
+            description,
+          },
+          mongoSession
+        );
+
+        if (matchedTopUp) {
+          matchedTopUp.status = TopUpStatus.VERIFIED;
+          matchedTopUp.verificationStatus = "VERIFIED";
+          matchedTopUp.walletTransactionId = wTx._id;
+          matchedTopUp.verifiedAt = new Date();
+          await matchedTopUp.save({ session: mongoSession });
+        }
+
+        event.verificationStatus = SmsEventVerificationStatus.MATCHED;
+        if (matchedTopUp) {
+          event.matchedTopUpId = matchedTopUp._id;
+        }
+        await event.save({ session: mongoSession });
+
+        finalBalance = balanceAfter;
+      });
+    } finally {
+      await mongoSession.endSession();
+    }
+
+    await auditLogService.log({
+      actorType: ActorType.ADMIN,
+      actorId: adminId,
+      action: "SMS_MANUAL_CREDIT",
+      entityType: "PaymentSmsEvent",
+      entityId: event._id,
+      metadata: {
+        userId: user._id,
+        amountPoisha: creditAmountPoisha,
+        amountBdt: creditAmountBdt,
+        transactionId: event.transactionId,
+        provider: event.provider,
+      },
+    });
+
+    await notificationService.send({
+      userId: user._id,
+      type: "TOPUP_VERIFIED",
+      title: "Wallet Credited",
+      message: `আপনার ওয়ালেটে ৳${creditAmountBdt.toFixed(2)} টাকা (${event.provider} TrxID: ${event.transactionId}) যোগ করা হয়েছে।`,
+      referenceType: "TopUp",
+      referenceId: matchedTopUp?._id || event._id,
+    });
+
+    try {
+      const { emitToUser } = await import("../../config/socket");
+      emitToUser(user._id.toString(), "topup_verified", {
+        walletBalance: finalBalance / 100,
+        amount: creditAmountBdt,
+        transactionId: event.transactionId,
+        provider: event.provider,
+      });
+    } catch (_) {}
+
+    return {
+      success: true,
+      event: {
+        id: event._id.toString(),
+        transactionId: event.transactionId,
+        provider: event.provider,
+        amountPoisha: creditAmountPoisha,
+        amountBdt: creditAmountBdt,
+        verificationStatus: event.verificationStatus,
+      },
+      user: {
+        id: user._id.toString(),
+        name: user.name,
+        phone: user.phone,
+      },
+      newBalanceBdt: finalBalance / 100,
+      matchedTopUpId: matchedTopUp?._id?.toString(),
+    };
   },
 };

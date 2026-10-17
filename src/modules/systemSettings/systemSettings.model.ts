@@ -27,6 +27,7 @@ export interface IPaymentMethodConfig {
 }
 
 export interface IContactSupport {
+  telegram: string;
   whatsapp: string;
   facebook: string;
   youtube: string;
@@ -112,6 +113,7 @@ const SystemSettingsSchema = new Schema<ISystemSettings>(
       },
     },
     contactSupport: {
+      telegram: { type: String, default: "https://t.me/alokito_telecom" },
       whatsapp: { type: String, default: "https://wa.me/8801890000001" },
       facebook: { type: String, default: "https://facebook.com" },
       youtube: { type: String, default: "https://youtube.com" },

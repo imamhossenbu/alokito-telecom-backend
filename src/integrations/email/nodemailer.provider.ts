@@ -10,19 +10,26 @@ class NodemailerEmailProvider implements EmailProvider {
     // 1. If GMAIL_SCRIPT_URL is set, send via Google Apps Script (Free Gmail HTTP Relay on Port 443)
     if (env.GMAIL_SCRIPT_URL) {
       try {
+        const plainText = text ?? stripHtml(html);
         const res = await fetch(env.GMAIL_SCRIPT_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ to, subject, html }),
+          body: JSON.stringify({ to, subject, html, text: plainText, body: plainText }),
+          redirect: "follow",
         });
-        if (!res.ok) {
-          const errText = await res.text();
-          throw new Error(`Google Script HTTP error ${res.status}: ${errText}`);
+        const respText = await res.text();
+        let respJson: any = null;
+        try {
+          respJson = JSON.parse(respText);
+        } catch (_) {}
+
+        if (!res.ok || (respJson && (respJson.status === "error" || respJson.success === false))) {
+          throw new Error(`Google Script error ${res.status}: ${respText}`);
         }
         logger.info({ to, subject }, "Email sent successfully via Google Apps Script Relay");
         return;
-      } catch (err) {
-        logger.error({ err, to, subject }, "Failed to send email via Google Apps Script Relay");
+      } catch (err: any) {
+        logger.error({ err: err?.message || err, to, subject }, "Failed to send email via Google Apps Script Relay");
       }
     }
 

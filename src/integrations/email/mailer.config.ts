@@ -40,6 +40,10 @@ export const transporter = nodemailer.createTransport(transportOptions);
  * instead of silently failing on the first registration attempt.
  */
 export async function verifyEmailTransport(): Promise<void> {
+  if (env.GMAIL_SCRIPT_URL) {
+    logger.info("Email transport active via Google Apps Script Relay (HTTPS Port 443)");
+    return;
+  }
   if (env.RESEND_API_KEY || env.BREVO_API_KEY) {
     logger.info("Email transport active via HTTPS REST API (Bypasses SMTP port blocking)");
     return;

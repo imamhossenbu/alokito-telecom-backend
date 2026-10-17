@@ -27,6 +27,8 @@ export const systemSettingsController = {
       data: {
         verificationMode: settings.verificationMode,
         fallbackPaymentNumbers: settings.fallbackPaymentNumbers,
+        paymentNumbers: settings.paymentNumbers,
+        contactSupport: settings.contactSupport,
         manualVerificationNote: settings.manualVerificationNote,
         serviceStatus: normalizedServiceStatus,
         appVersion: settings.appVersion,

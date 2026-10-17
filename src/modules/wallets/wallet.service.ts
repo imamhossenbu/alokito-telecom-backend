@@ -39,7 +39,13 @@ export const walletService = {
     reason: string;
     adminId: string;
   }) {
-    const user = await userRepository.findById(data.userId);
+    let user = null;
+    if (Types.ObjectId.isValid(data.userId)) {
+      user = await userRepository.findById(data.userId);
+    }
+    if (!user) {
+      user = (await userRepository.findByPhone(data.userId)) || (await userRepository.findByEmailNormalized(data.userId.toLowerCase().trim()));
+    }
     if (!user) {
       throw new NotFoundError("USER_NOT_FOUND", "Customer not found");
     }

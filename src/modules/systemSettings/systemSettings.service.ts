@@ -109,11 +109,15 @@ export class SystemSettingsService {
 
       if (!settings.contactSupport) {
         settings.contactSupport = {
+          telegram: "https://t.me/alokito_telecom",
           whatsapp: "https://wa.me/8801890000001",
           facebook: "https://facebook.com",
           youtube: "https://youtube.com",
           offlinePhone: "01890000001",
         };
+        needSave = true;
+      } else if (!settings.contactSupport.telegram) {
+        settings.contactSupport.telegram = "https://t.me/alokito_telecom";
         needSave = true;
       }
 
@@ -216,6 +220,7 @@ export class SystemSettingsService {
     }
     if (data.contactSupport) {
       settings.contactSupport = {
+        telegram: data.contactSupport.telegram ?? settings.contactSupport?.telegram ?? "",
         whatsapp: data.contactSupport.whatsapp ?? settings.contactSupport?.whatsapp ?? "",
         facebook: data.contactSupport.facebook ?? settings.contactSupport?.facebook ?? "",
         youtube: data.contactSupport.youtube ?? settings.contactSupport?.youtube ?? "",
