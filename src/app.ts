@@ -18,6 +18,9 @@ import {
 import healthRoutes from "./modules/health.routes";
 import v1Router from "./routes/v1";
 import docsRouter, { docsEnabled } from "./docs/swagger.routes";
+import { systemSettingsService } from "./modules/systemSettings/systemSettings.service";
+import { renderCustomerDownloadPage } from "./views/customerDownloadView";
+import { renderAdminAppsPortalPage } from "./views/adminAppsPortalView";
 
 export function createApp(): Application {
   const app = express();
@@ -135,338 +138,85 @@ export function createApp(): Application {
     return res.status(404).send(`APK file not found: ${target}`);
   });
 
-  // --- Mobile Apps Download Portal Page ---
-  app.get(["/", "/downloads", "/apps", "/app"], (_req, res) => {
-    const html = `<!DOCTYPE html>
-<html lang="bn">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Alokito Telecom - Official Apps Download</title>
-  <link rel="icon" type="image/png" href="/public/favicon.png">
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Hind+Siliguri:wght@500;600;700&display=swap" rel="stylesheet">
-  <style>
-    @font-face {
-      font-family: 'Bornomala';
-      src: url('/public/fonts/Bornomala-Regular.ttf') format('truetype');
-      font-weight: 400;
-      font-style: normal;
-    }
-    @font-face {
-      font-family: 'Bornomala';
-      src: url('/public/fonts/Bornomala-Bold.ttf') format('truetype');
-      font-weight: 700;
-      font-style: normal;
-    }
-    :root {
-      --primary: #0D5E36;
-      --primary-light: #15803D;
-      --bg: #0B131E;
-      --card-bg: rgba(255, 255, 255, 0.05);
-      --border: rgba(255, 255, 255, 0.1);
-      --text: #F8FAFC;
-      --text-muted: #94A3B8;
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: 'Bornomala', 'Plus Jakarta Sans', sans-serif;
-      background: radial-gradient(circle at top, #13271E 0%, #080D14 100%);
-      color: var(--text);
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 40px 20px;
-    }
-    .container {
-      max-width: 680px;
-      width: 100%;
-    }
-    .header {
-      text-align: center;
-      margin-bottom: 36px;
-    }
-    .logo-img {
-      width: 80px;
-      height: 80px;
-      border-radius: 20px;
-      background: #ffffff;
-      padding: 4px;
-      box-shadow: 0 10px 30px rgba(13, 94, 54, 0.4);
-      margin-bottom: 16px;
-      object-fit: contain;
-    }
-    .logo-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
-      background: rgba(13, 94, 54, 0.3);
-      border: 1px solid rgba(22, 163, 74, 0.4);
-      padding: 6px 14px;
-      border-radius: 999px;
-      font-size: 12px;
-      font-weight: 700;
-      color: #4ADE80;
-      margin-bottom: 12px;
-    }
-    h1 {
-      font-size: 32px;
-      font-weight: 800;
-      letter-spacing: -0.5px;
-      margin-bottom: 8px;
-    }
-    p.sub {
-      color: var(--text-muted);
-      font-size: 15px;
-    }
-    .apps-grid {
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-    }
-    .app-card {
-      background: var(--card-bg);
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      padding: 24px;
-      backdrop-filter: blur(16px);
-      transition: all 0.2s ease;
-    }
-    .app-card:hover {
-      border-color: rgba(34, 197, 94, 0.4);
-      transform: translateY(-2px);
-    }
-    .card-top {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      margin-bottom: 16px;
-    }
-    .app-icon {
-      width: 56px;
-      height: 56px;
-      border-radius: 14px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      overflow: hidden;
-      flex-shrink: 0;
-      background: white;
-      padding: 4px;
-      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
-    }
-    .app-icon img {
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-    }
-    .app-info h2 {
-      font-size: 19px;
-      font-weight: 700;
-      margin-bottom: 4px;
-    }
-    .badges {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-    .badge {
-      font-size: 11px;
-      font-weight: 600;
-      padding: 3px 8px;
-      border-radius: 6px;
-      background: rgba(255, 255, 255, 0.08);
-      color: #CBD5E1;
-    }
-    .badge.green {
-      background: rgba(34, 197, 94, 0.15);
-      color: #4ADE80;
-    }
-    .description {
-      font-size: 13px;
-      color: var(--text-muted);
-      line-height: 1.5;
-      margin-bottom: 20px;
-    }
-    .btn-group {
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-    .btn-download {
-      flex: 1;
-      min-width: 200px;
-      background: linear-gradient(135deg, #15803D, #16A34A);
-      color: white;
-      text-decoration: none;
-      font-weight: 700;
-      font-size: 14px;
-      padding: 13px 20px;
-      border-radius: 12px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      box-shadow: 0 4px 14px rgba(22, 163, 74, 0.3);
-      transition: all 0.2s ease;
-    }
-    .btn-download:hover {
-      background: linear-gradient(135deg, #166534, #15803D);
-      transform: translateY(-1px);
-    }
-    .btn-secondary {
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      color: #E2E8F0;
-      text-decoration: none;
-      font-size: 13px;
-      font-weight: 600;
-      padding: 13px 16px;
-      border-radius: 12px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.2s ease;
-    }
-    .btn-secondary:hover {
-      background: rgba(255, 255, 255, 0.12);
-    }
-    .btn-web {
-      background: rgba(22, 163, 74, 0.15);
-      border: 1px solid rgba(74, 222, 128, 0.4);
-      color: #4ADE80;
-      text-decoration: none;
-      font-size: 13px;
-      font-weight: 700;
-      padding: 13px 16px;
-      border-radius: 12px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.2s ease;
-    }
-    .btn-web:hover {
-      background: rgba(22, 163, 74, 0.25);
-    }
-    .footer {
-      text-align: center;
-      margin-top: 40px;
-      font-size: 12px;
-      color: #64748B;
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="header">
-      <img src="/public/logo.png" class="logo-img" alt="Alokito Telecom Logo" />
-      <div>
-        <div class="logo-badge">⚡ Alokito Telecom Production Suite</div>
-      </div>
-      <h1>অফিসিয়াল অ্যাপস ডাউনলোড</h1>
-      <p class="sub">সরাসরি লিংকে ক্লিক করলেই আপনার ফোনে APK ডাউনলোড শুরু হয়ে যাবে</p>
-    </div>
+  // --- Dedicated Customer App Download & Welcome Page ---
+  // Exclusive link for customers: contains ONLY the Customer App APK & Web App, step-by-step install guide, and dynamic support buttons.
+  // Absolutely NO admin or listener app links are exposed here.
+  app.get([
+    "/customer-app",
+    "/customer-download",
+    "/customer/download",
+    "/customer/app",
+    "/app/customer",
+    "/get-app",
+    "/download-customer",
+    "/customer-portal",
+    "/app",
+    "/",
+  ], async (_req, res) => {
+    try {
+      const settings = await systemSettingsService.getSettings().catch(() => null);
+      const customerVer = settings?.appVersion?.customer;
+      const contact = settings?.contactSupport;
+      const serviceStatus = (settings?.serviceStatus || {}) as any;
+      const notice = serviceStatus.noticeBanner?.active
+        ? (serviceStatus.noticeBanner?.message || "")
+        : "";
 
-    <div class="apps-grid">
-      <!-- Alokito Telecom Customer App Card -->
-      <div class="app-card" style="border-color: rgba(34, 197, 94, 0.5); background: linear-gradient(180deg, rgba(21, 128, 61, 0.15) 0%, rgba(255, 255, 255, 0.05) 100%);">
-        <div class="card-top">
-          <div class="app-icon">
-            <img src="/public/logo.png" alt="Customer App" />
-          </div>
-          <div class="app-info">
-            <h2>Alokito Telecom - Customer App (গ্রাহক অ্যাপ)</h2>
-            <div class="badges">
-              <span class="badge green">New & Verified</span>
-              <span class="badge">v1.0.7 (Build 8)</span>
-              <span class="badge">Android & Web</span>
-            </div>
-          </div>
-        </div>
-        <div class="description">
-          গ্রাহকদের জন্য ড্রাইভ ও রেগুলার অফার কেনা, ইনস্ট্যান্ট বিকাশ/নগদ ব্যালেন্স রিচার্জ, NID কার্ড KYC ভেরিফিকেশন, ৪-ডিজিট সিকিউর পিন এবং বিস্তারিত লেজার স্টেটমেন্ট।
-        </div>
-        <div class="btn-group">
-          <a href="/download/customer" class="btn-download" download>
-            ⬇️ Download Customer APK (Main)
-          </a>
-          <a href="/customer" class="btn-web" target="_blank">
-            🌐 Open Customer Web
-          </a>
-          <a href="/download/customer-v7a" class="btn-secondary" download title="Compact build for older phones">
-            v7a Build
-          </a>
-        </div>
-      </div>
+      const html = renderCustomerDownloadPage({
+        version: customerVer?.latestVersion || "1.0.7",
+        build: customerVer?.buildNumber || 8,
+        releaseNotes: customerVer?.releaseNotes,
+        whatsapp: contact?.whatsapp || "https://wa.me/8801890000001",
+        telegram: contact?.telegram || "https://t.me/alokito_telecom",
+        offlinePhone: contact?.offlinePhone || "01890000001",
+        facebook: contact?.facebook || "https://facebook.com",
+        youtube: contact?.youtube || "https://youtube.com",
+        noticeBanner: notice,
+      });
 
-      <!-- Alokito Telecom Admin App Card -->
-      <div class="app-card">
-        <div class="card-top">
-          <div class="app-icon">
-            <img src="/public/logo.png" alt="Admin App" />
-          </div>
-          <div class="app-info">
-            <h2>Alokito Telecom - Admin App</h2>
-            <div class="badges">
-              <span class="badge green">Production Ready</span>
-              <span class="badge">v1.0.5 (Build 6)</span>
-              <span class="badge">Android & Web</span>
-            </div>
-          </div>
-        </div>
-        <div class="description">
-          ড্রাইভ ও রেগুলার অফার ম্যানেজমেন্ট, ক্যাটাগরি তৈরি ও ডিলিট, রিয়েলটাইম অর্ডার প্রসেসিং, ইউজার কন্ট্রোল, নোটিফিকেশন অ্যালার্ট ও ব্রাউজার সাপোর্ট।
-        </div>
-        <div class="btn-group">
-          <a href="/download/admin" class="btn-download" download>
-            ⬇️ Download Admin APK (Main)
-          </a>
-          <a href="/admin" class="btn-web" target="_blank">
-            🌐 Open Web Admin
-          </a>
-          <a href="/download/admin-v7a" class="btn-secondary" download title="Compact build">
-            v7a Build
-          </a>
-        </div>
-      </div>
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate, max-age=0");
+      res.send(html);
+    } catch (e) {
+      const fallbackHtml = renderCustomerDownloadPage();
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      res.send(fallbackHtml);
+    }
+  });
 
-      <!-- Alokito Telecom SMS Listener App Card -->
-      <div class="app-card">
-        <div class="card-top">
-          <div class="app-icon">
-            <img src="/public/logo.png" alt="SMS Listener" />
-          </div>
-          <div class="app-info">
-            <h2>Alokito Telecom - SMS Listener</h2>
-            <div class="badges">
-              <span class="badge green">Production Ready</span>
-              <span class="badge">v1.0.0</span>
-              <span class="badge">Background Service</span>
-            </div>
-          </div>
-        </div>
-        <div class="description">
-          বিকাশ, নগদ ও রকেটের ইনকামিং SMS স্বয়ংক্রিয়ভাবে সার্ভারে সিঙ্ক ও পেমেন্ট ভেরিফাই করার ডেডিকেটেড ব্যাকগ্রাউন্ড সার্ভিস অ্যাপ।
-        </div>
-        <div class="btn-group">
-          <a href="/download/listener" class="btn-download" download>
-            ⬇️ Download SMS Listener APK (Main)
-          </a>
-          <a href="/download/listener-v7a" class="btn-secondary" download title="Compact build">
-            v7a Build
-          </a>
-        </div>
-      </div>
-    </div>
+  // --- Central Administrative & Staff Apps Portal ---
+  // Contains Customer App, Admin App, and SMS Listener App with a quick banner to copy the customer link.
+  app.get([
+    "/portal",
+    "/admin-apps",
+    "/admin/downloads",
+    "/admin-downloads",
+    "/internal/apps",
+    "/downloads",
+    "/apps",
+    "/all-apps",
+  ], async (_req, res) => {
+    try {
+      const settings = await systemSettingsService.getSettings().catch(() => null);
+      const customerVer = settings?.appVersion?.customer;
+      const adminVer = settings?.appVersion?.admin;
 
-    <div class="footer">
-      Alokito Telecom &copy; 2026. All rights reserved.
-    </div>
-  </div>
-</body>
-</html>`;
-    res.setHeader("Content-Type", "text/html; charset=utf-8");
-    res.send(html);
+      const html = renderAdminAppsPortalPage({
+        customerVersion: customerVer?.latestVersion || "1.0.7",
+        customerBuild: customerVer?.buildNumber || 8,
+        adminVersion: adminVer?.latestVersion || "1.0.5",
+        adminBuild: adminVer?.buildNumber || 6,
+        listenerVersion: "1.0.2",
+      });
+
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate, max-age=0");
+      res.send(html);
+    } catch (e) {
+      const fallbackHtml = renderAdminAppsPortalPage();
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      res.send(fallbackHtml);
+    }
   });
 
   // --- Request body limits: support base64 profile images and large payloads ---
