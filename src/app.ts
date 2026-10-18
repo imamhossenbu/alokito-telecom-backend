@@ -157,11 +157,6 @@ export function createApp(): Application {
       const settings = await systemSettingsService.getSettings().catch(() => null);
       const customerVer = settings?.appVersion?.customer;
       const contact = settings?.contactSupport;
-      const serviceStatus = (settings?.serviceStatus || {}) as any;
-      const notice = serviceStatus.noticeBanner?.active
-        ? (serviceStatus.noticeBanner?.message || "")
-        : "";
-
       const html = renderCustomerDownloadPage({
         version: customerVer?.latestVersion || "1.0.7",
         build: customerVer?.buildNumber || 8,
@@ -171,7 +166,6 @@ export function createApp(): Application {
         offlinePhone: contact?.offlinePhone || "01890000001",
         facebook: contact?.facebook || "https://facebook.com",
         youtube: contact?.youtube || "https://youtube.com",
-        noticeBanner: notice,
       });
 
       res.setHeader("Content-Type", "text/html; charset=utf-8");

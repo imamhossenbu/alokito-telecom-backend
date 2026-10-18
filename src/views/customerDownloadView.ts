@@ -7,7 +7,6 @@ export interface CustomerViewData {
   offlinePhone?: string;
   facebook?: string;
   youtube?: string;
-  noticeBanner?: string;
 }
 
 export function renderCustomerDownloadPage(data: CustomerViewData = {}): string {
@@ -16,7 +15,6 @@ export function renderCustomerDownloadPage(data: CustomerViewData = {}): string 
   const whatsapp = data.whatsapp || "https://wa.me/8801890000001";
   const telegram = data.telegram || "https://t.me/alokito_telecom";
   const phone = data.offlinePhone || "01890000001";
-  const notice = data.noticeBanner || "";
 
   return `<!DOCTYPE html>
 <html lang="bn">
@@ -82,19 +80,6 @@ export function renderCustomerDownloadPage(data: CustomerViewData = {}): string 
     .container {
       max-width: 640px;
       width: 100%;
-    }
-    /* Notice Banner */
-    .notice-bar {
-      background: linear-gradient(135deg, rgba(234, 88, 12, 0.2), rgba(194, 65, 12, 0.3));
-      border: 1px solid rgba(249, 115, 22, 0.4);
-      padding: 10px 14px;
-      border-radius: 12px;
-      font-size: 13px;
-      color: #FDBA74;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 24px;
     }
     /* Header */
     .header {
@@ -499,13 +484,6 @@ export function renderCustomerDownloadPage(data: CustomerViewData = {}): string 
 </head>
 <body>
   <div class="container">
-    ${notice ? `
-    <div class="notice-bar">
-      <span>📢</span>
-      <div>${notice}</div>
-    </div>
-    ` : ''}
-
     <div class="header">
       <div class="logo-wrapper">
         <div class="logo-glow"></div>
