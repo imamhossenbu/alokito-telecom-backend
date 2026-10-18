@@ -86,11 +86,11 @@ export class SystemSettingsService {
 
         if (!settings.appVersion.admin) {
           settings.appVersion.admin = {
-            latestVersion: "1.0.5",
-            buildNumber: 6,
+            latestVersion: "1.0.6",
+            buildNumber: 7,
             downloadUrl: "https://alokito-telecom-backend-1.onrender.com/download/admin",
             forceUpdate: false,
-            releaseNotes: "লেটেস্ট বিল্ড: সকল ইনকামিং SMS লগ, ফুল SMS কপি সুবিধা ও পারফরম্যান্স আপডেট।",
+            releaseNotes: "লেটেস্ট বিল্ড: গ্রাহক ডেডিকেটেড ডাউনলোড লিঙ্ক শেয়ার, অটো SMS লগ ও পারফরম্যান্স আপডেট।",
           };
           needSave = true;
         } else {
@@ -98,10 +98,10 @@ export class SystemSettingsService {
             settings.appVersion.admin.downloadUrl = "https://alokito-telecom-backend-1.onrender.com/download/admin";
             needSave = true;
           }
-          if ((settings.appVersion.admin.buildNumber || 0) < 6) {
-            settings.appVersion.admin.buildNumber = 6;
-            settings.appVersion.admin.latestVersion = "1.0.5";
-            settings.appVersion.admin.releaseNotes = "লেটেস্ট বিল্ড: সকল ইনকামিং SMS লগ, ফুল SMS কপি সুবিধা ও পারফরম্যান্স আপডেট।";
+          if ((settings.appVersion.admin.buildNumber || 0) < 7) {
+            settings.appVersion.admin.buildNumber = 7;
+            settings.appVersion.admin.latestVersion = "1.0.6";
+            settings.appVersion.admin.releaseNotes = "লেটেস্ট বিল্ড: গ্রাহক ডেডিকেটেড ডাউনলোড লিঙ্ক শেয়ার, অটো SMS লগ ও পারফরম্যান্স আপডেট।";
             needSave = true;
           }
         }

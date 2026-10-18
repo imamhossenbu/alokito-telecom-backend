@@ -204,8 +204,8 @@ export function createApp(): Application {
       const html = renderAdminAppsPortalPage({
         customerVersion: customerVer?.latestVersion || "1.0.7",
         customerBuild: customerVer?.buildNumber || 8,
-        adminVersion: adminVer?.latestVersion || "1.0.5",
-        adminBuild: adminVer?.buildNumber || 6,
+        adminVersion: adminVer?.latestVersion || "1.0.6",
+        adminBuild: adminVer?.buildNumber || 7,
         listenerVersion: "1.0.2",
       });
 
