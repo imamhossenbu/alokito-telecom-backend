@@ -1,6 +1,7 @@
 import { SmsParser, ParsedSms } from "./SmsParser";
 import { bdtToPoisha } from "../../shared/utils/money";
 import { PaymentProvider } from "../../shared/enums";
+import { extractSmsDateTime } from "../normalizer/dateExtractor";
 
 export class RocketSmsParser implements SmsParser {
   canParse(smsContent: string, devicePhoneNumber?: string): boolean {
@@ -17,7 +18,7 @@ export class RocketSmsParser implements SmsParser {
     );
   }
 
-  parse(smsContent: string, devicePhoneNumber?: string): ParsedSms {
+  parse(smsContent: string, devicePhoneNumber?: string, fallbackDate?: Date): ParsedSms {
     // Rocket receipts:
     // "Rocket: You have received Tk. 500.00 from 01912345678. TxnID: 91ABCXYZ. Date: 27/08/2026 14:30"
     
@@ -39,24 +40,8 @@ export class RocketSmsParser implements SmsParser {
     const amount = bdtToPoisha(amountBdt);
     const sender = senderMatch ? senderMatch[1].replace(/[.,]+$/, "").trim() : undefined;
 
-    // Parse date if available
-    let receivedAt = new Date();
-    const dateMatch = normalizedContent.match(/Date\s*:\s*(\d{2}\/\d{2}\/\d{4}\s*\d{2}:\d{2})/i);
-    if (dateMatch) {
-      const parts = dateMatch[1].split(/\s+/);
-      const dateParts = parts[0].split("/");
-      const timeParts = parts[1].split(":");
-      // DD/MM/YYYY HH:MM BST (+06:00)
-      const day = dateParts[0].padStart(2, "0");
-      const month = dateParts[1].padStart(2, "0");
-      const year = dateParts[2];
-      const hours = timeParts[0].padStart(2, "0");
-      const mins = timeParts[1].padStart(2, "0");
-      const parsed = new Date(`${year}-${month}-${day}T${hours}:${mins}:00+06:00`);
-      if (!isNaN(parsed.getTime())) {
-        receivedAt = parsed;
-      }
-    }
+    // Parse exact transaction date from message body
+    const receivedAt = extractSmsDateTime(normalizedContent, fallbackDate);
 
     return {
       provider: PaymentProvider.ROCKET,

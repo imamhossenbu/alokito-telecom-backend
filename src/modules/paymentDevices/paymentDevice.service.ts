@@ -4,6 +4,7 @@ import { PaymentDeviceModel, PaymentDeviceStatus } from "./paymentDevice.model";
 import { PaymentPairingSessionModel, PairingStatus } from "./pairing.model";
 import { PaymentSmsEventModel, SmsEventVerificationStatus } from "./smsEvent.model";
 import { normalizeSms } from "../../sms/normalizer/normalizer";
+import { poishaToBdt } from "../../shared/utils/money";
 import { signAccessToken } from "../../shared/utils/jwt";
 import { NotFoundError, AppError, ConflictError } from "../../shared/errors/app-error";
 import { logger } from "../../config/logger";
@@ -371,6 +372,59 @@ export const paymentDeviceService = {
         await topUpService.autoMatchPendingTopUp(event);
       } catch (matchErr) {
         logger.warn({ matchErr, eventId: event._id }, "Failed to auto-match pending topup on SMS ingestion");
+      }
+
+      // Send Telegram notification if not auto-matched yet
+      if (event.verificationStatus !== SmsEventVerificationStatus.MATCHED) {
+        try {
+          const { systemSettingsService } = await import("../systemSettings/systemSettings.service");
+          const settings = await systemSettingsService.getSettings();
+          const botToken =
+            settings.smsIntegration?.telegramBotToken ||
+            process.env.TELEGRAM_BOT_TOKEN ||
+            "8974788916:AAEvyNJ3JOO0PPHI9UwPwXNp01T4HJ6XxdA";
+          const targetChatIds = Array.from(
+            new Set(
+              [
+                settings.smsIntegration?.telegramChatId,
+                process.env.TELEGRAM_ADMIN_CHAT_ID,
+                process.env.TELEGRAM_PERSONAL_CHAT_ID,
+                "-1004457142501",
+              ].filter((id): id is string => Boolean(id && id !== "99999999"))
+            )
+          );
+
+          if (settings.smsIntegration?.isTelegramEnabled !== false && botToken && targetChatIds.length > 0) {
+            const timeBd = new Intl.DateTimeFormat("en-GB", {
+              timeZone: "Asia/Dhaka",
+              day: "2-digit",
+              month: "2-digit",
+              year: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: true,
+            }).format(parsed.receivedAt || new Date());
+
+            const text =
+              `📥 <b>নতুন পেমেন্ট SMS গৃহীত হয়েছে!</b>\n` +
+              `━━━━━━━━━━━━━━━━━━━━\n` +
+              `💰 <b>মাধ্যম:</b> ${parsed.provider}\n` +
+              `🆔 <b>TrxID:</b> <code>${parsed.transactionId.toUpperCase()}</code>\n` +
+              `💵 <b>পরিমাণ:</b> ৳${poishaToBdt(parsed.amount).toFixed(2)}\n` +
+              `📱 <b>প্রেরক নম্বর:</b> <code>${parsed.sender || "অনুল্লেখিত"}</code>\n` +
+              `🕒 <b>লেনদেন সময়:</b> ${timeBd}\n` +
+              `📊 <b>স্ট্যাটাস:</b> 🟡 পেন্ডিং (PENDING / UNUSED)\n` +
+              `━━━━━━━━━━━━━━━━━━━━\n` +
+              `✉️ <b>সম্পূর্ণ SMS:</b>\n<code>${smsContent.trim()}</code>\n` +
+              `━━━━━━━━━━━━━━━━━━━━\n` +
+              `ℹ️ কাস্টমার টাকা পাঠিয়ে অ্যাপ থেকে ভেরিফাই করলে স্বয়ংক্রিয়ভাবে ব্যালেন্স যোগ হবে।`;
+
+            const { smsWebhookService } = await import("../smsWebhook/smsWebhook.service");
+            for (const cid of targetChatIds) {
+              await smsWebhookService.sendTelegramRawMessage(botToken, cid, text, "HTML").catch(() => {});
+            }
+          }
+        } catch (_) {}
       }
 
       return { success: true, eventId: event._id.toString() };

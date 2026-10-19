@@ -11,35 +11,35 @@ const parsers = [
   new UpaySmsParser(),
 ];
 
-export function normalizeSms(smsContent: string, devicePhoneNumber?: string): ParsedSms {
+export function normalizeSms(smsContent: string, devicePhoneNumber?: string, fallbackDate?: Date): ParsedSms {
   const hint = (devicePhoneNumber || "").toLowerCase();
 
   if (hint.includes("bkash")) {
     const p = new BkashSmsParser();
     if (p.canParse(smsContent, devicePhoneNumber)) {
-      try { return p.parse(smsContent, devicePhoneNumber); } catch (_) {}
+      try { return p.parse(smsContent, devicePhoneNumber, fallbackDate); } catch (_) {}
     }
   } else if (hint.includes("nagad") || hint.includes("16167")) {
     const p = new NagadSmsParser();
     if (p.canParse(smsContent, devicePhoneNumber)) {
-      try { return p.parse(smsContent, devicePhoneNumber); } catch (_) {}
+      try { return p.parse(smsContent, devicePhoneNumber, fallbackDate); } catch (_) {}
     }
   } else if (hint.includes("rocket") || hint.includes("16216") || hint.includes("dbbl")) {
     const p = new RocketSmsParser();
     if (p.canParse(smsContent, devicePhoneNumber)) {
-      try { return p.parse(smsContent, devicePhoneNumber); } catch (_) {}
+      try { return p.parse(smsContent, devicePhoneNumber, fallbackDate); } catch (_) {}
     }
   } else if (hint.includes("upay") || hint.includes("ucb") || hint.includes("16268")) {
     const p = new UpaySmsParser();
     if (p.canParse(smsContent, devicePhoneNumber)) {
-      try { return p.parse(smsContent, devicePhoneNumber); } catch (_) {}
+      try { return p.parse(smsContent, devicePhoneNumber, fallbackDate); } catch (_) {}
     }
   }
 
   for (const parser of parsers) {
     if (parser.canParse(smsContent, devicePhoneNumber)) {
       try {
-        return parser.parse(smsContent, devicePhoneNumber);
+        return parser.parse(smsContent, devicePhoneNumber, fallbackDate);
       } catch (_) {
         // Continue to other parsers
       }

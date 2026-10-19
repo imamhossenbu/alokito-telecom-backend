@@ -11,6 +11,6 @@ export interface ParsedSms {
 
 export interface SmsParser {
   canParse(smsContent: string, devicePhoneNumber?: string): boolean;
-  parse(smsContent: string, devicePhoneNumber?: string): ParsedSms;
+  parse(smsContent: string, devicePhoneNumber?: string, fallbackDate?: Date): ParsedSms;
 }
 

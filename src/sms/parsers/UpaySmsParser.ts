@@ -1,6 +1,7 @@
 import { SmsParser, ParsedSms } from "./SmsParser";
 import { bdtToPoisha } from "../../shared/utils/money";
 import { PaymentProvider } from "../../shared/enums";
+import { extractSmsDateTime } from "../normalizer/dateExtractor";
 
 export class UpaySmsParser implements SmsParser {
   canParse(smsContent: string, devicePhoneNumber?: string): boolean {
@@ -24,7 +25,7 @@ export class UpaySmsParser implements SmsParser {
     );
   }
 
-  parse(smsContent: string, devicePhoneNumber?: string): ParsedSms {
+  parse(smsContent: string, devicePhoneNumber?: string, fallbackDate?: Date): ParsedSms {
     // Upay receipts:
     // "Cash In of Tk. 500.00 from 01712345678 successful. TrxID: UP12345678. Fee Tk 0.00. Balance Tk 1500.00."
     const normalizedContent = smsContent.replace(/,/g, "");
@@ -45,13 +46,16 @@ export class UpaySmsParser implements SmsParser {
     const amount = bdtToPoisha(amountBdt);
     const sender = senderMatch ? senderMatch[1].replace(/[.,]+$/, "").trim() : undefined;
 
+    // Parse exact transaction date from message body
+    const receivedAt = extractSmsDateTime(normalizedContent, fallbackDate);
+
     return {
       provider: PaymentProvider.UPAY,
       transactionId,
       amount,
       sender,
       receiver: devicePhoneNumber,
-      receivedAt: new Date(),
+      receivedAt,
     };
   }
 }

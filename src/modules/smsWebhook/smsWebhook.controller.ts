@@ -78,8 +78,27 @@ export const smsWebhookController = {
       });
     }
 
+    // 3. Extract device hardware timestamp if sent by listener app (for offline delayed sync)
+    let deviceTimestamp: Date | undefined;
+    if (typeof req.body === "object" && req.body !== null) {
+      const rawTime =
+        req.body.timestamp ||
+        req.body.time ||
+        req.body.date ||
+        req.body.sent_at ||
+        req.body.received_at;
+      if (rawTime) {
+        if (typeof rawTime === "number") {
+          deviceTimestamp = new Date(rawTime);
+        } else if (typeof rawTime === "string") {
+          const parsed = new Date(rawTime);
+          if (!isNaN(parsed.getTime())) deviceTimestamp = parsed;
+        }
+      }
+    }
+
     try {
-      const result = await smsWebhookService.ingestSmsContent(content, sender, "FORWARDER_WEBHOOK");
+      const result = await smsWebhookService.ingestSmsContent(content, sender, "FORWARDER_WEBHOOK", deviceTimestamp);
       return res.status(200).json({
         success: true,
         message: result.message,

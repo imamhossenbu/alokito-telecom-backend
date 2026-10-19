@@ -20,7 +20,8 @@ export const smsWebhookService = {
   async ingestSmsContent(
     smsContent: string,
     senderPhone?: string,
-    source: "FORWARDER_WEBHOOK" | "TELEGRAM_BOT" | "MANUAL" = "FORWARDER_WEBHOOK"
+    source: "FORWARDER_WEBHOOK" | "TELEGRAM_BOT" | "MANUAL" = "FORWARDER_WEBHOOK",
+    fallbackDate?: Date
   ) {
     if (!smsContent || typeof smsContent !== "string" || smsContent.trim().length === 0) {
       throw new Error("SMS content is empty");
@@ -35,8 +36,8 @@ export const smsWebhookService = {
       }
     }
 
-    // 1. Normalize and parse SMS
-    const parsed = normalizeSms(smsContent.trim(), senderPhone);
+    // 1. Normalize and parse SMS (extracts exact date from inside SMS body)
+    const parsed = normalizeSms(smsContent.trim(), senderPhone, fallbackDate);
 
     const smsFingerprint = generateSmsFingerprint(
       parsed.provider,
