@@ -200,7 +200,7 @@ export function createApp(): Application {
         customerBuild: customerVer?.buildNumber || 8,
         adminVersion: adminVer?.latestVersion || "1.0.6",
         adminBuild: adminVer?.buildNumber || 7,
-        listenerVersion: "1.0.2",
+        listenerVersion: "1.0.3",
       });
 
       res.setHeader("Content-Type", "text/html; charset=utf-8");

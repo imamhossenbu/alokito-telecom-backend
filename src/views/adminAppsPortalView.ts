@@ -11,7 +11,7 @@ export function renderAdminAppsPortalPage(data: AdminPortalViewData = {}): strin
   const custBuild = data.customerBuild || 8;
   const admVer = data.adminVersion || "1.0.5";
   const admBuild = data.adminBuild || 6;
-  const listVer = data.listenerVersion || "1.0.2";
+  const listVer = data.listenerVersion || "1.0.3";
 
   return `<!DOCTYPE html>
 <html lang="bn">

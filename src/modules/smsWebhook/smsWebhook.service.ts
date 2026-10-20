@@ -144,8 +144,17 @@ export const smsWebhookService = {
         );
 
         if (settings.smsIntegration?.isTelegramEnabled !== false && botToken && targetChatIds.length > 0 && !matched) {
+          const isTestSms =
+            parsed.transactionId.toUpperCase().startsWith("TST") ||
+            sender === "01700000000" ||
+            smsContent.includes("01700000000");
+
+          const headerTitle = isTestSms
+            ? `🧪 <b>[সিস্টেম টেস্ট ডামি SMS]</b>\n⚠️ <i>(এটি অ্যাপের টেস্ট বাটন থেকে পাঠানো ডামি মেসেজ, আসল কাস্টমার লেনদেন নয়)</i>`
+            : `📥 <b>নতুন পেমেন্ট SMS গৃহীত হয়েছে!</b>`;
+
           const text =
-            `📥 <b>নতুন পেমেন্ট SMS গৃহীত হয়েছে!</b>\n` +
+            `${headerTitle}\n` +
             `━━━━━━━━━━━━━━━━━━━━\n` +
             `💰 <b>মাধ্যম:</b> ${parsed.provider}\n` +
             `🆔 <b>TrxID:</b> <code>${parsed.transactionId.toUpperCase()}</code>\n` +
@@ -156,7 +165,9 @@ export const smsWebhookService = {
             `━━━━━━━━━━━━━━━━━━━━\n` +
             `✉️ <b>সম্পূর্ণ SMS:</b>\n<code>${smsContent.trim()}</code>\n` +
             `━━━━━━━━━━━━━━━━━━━━\n` +
-            `ℹ️ কাস্টমার টাকা পাঠিয়ে অ্যাপ থেকে ভেরিফাই করলে স্বয়ংক্রিয়ভাবে ব্যালেন্স যোগ হবে।`;
+            (isTestSms
+              ? `ℹ️ টেলিগ্রাম বট কানেকশন ঠিক আছে! কাস্টমার টাকা পাঠালে ফোনের আসল SMS স্বয়ংক্রিয়ভাবে এখানে আসবে।`
+              : `ℹ️ কাস্টমার টাকা পাঠিয়ে অ্যাপ থেকে ভেরিফাই করলে স্বয়ংক্রিয়ভাবে ব্যালেন্স যোগ হবে।`);
 
           for (const cid of targetChatIds) {
             await this.sendTelegramRawMessage(botToken, cid, text, "HTML").catch(() => {});
