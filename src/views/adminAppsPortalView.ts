@@ -9,8 +9,8 @@ export interface AdminPortalViewData {
 export function renderAdminAppsPortalPage(data: AdminPortalViewData = {}): string {
   const custVer = data.customerVersion || "1.0.7";
   const custBuild = data.customerBuild || 8;
-  const admVer = data.adminVersion || "1.0.5";
-  const admBuild = data.adminBuild || 6;
+  const admVer = data.adminVersion || "1.0.7";
+  const admBuild = data.adminBuild || 8;
   const listVer = data.listenerVersion || "1.0.3";
 
   return `<!DOCTYPE html>
