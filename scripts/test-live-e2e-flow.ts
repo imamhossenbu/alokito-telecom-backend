@@ -3,17 +3,17 @@ import "dotenv/config";
 import fs from "fs";
 import path from "path";
 
-const BASE_URL = "https://alokito-telecom-backend-1.onrender.com/api/v1";
+const BASE_URL = "https://alokito-telecom-backend-sqgt.onrender.com/api/v1";
 const validImageBuffer = fs.readFileSync(path.join(__dirname, "../public/logo.png"));
 
 async function main() {
   console.log("===============================================================================");
-  console.log("🚀 STARTING FULL E2E LIVE FLOW VERIFICATION ON https://alokito-telecom-backend-1.onrender.com");
+  console.log("🚀 STARTING FULL E2E LIVE FLOW VERIFICATION ON https://alokito-telecom-backend-sqgt.onrender.com");
   console.log("===============================================================================\n");
 
   // ── Step 1: Health Check ──
   console.log("1️⃣  Verifying Live Server Health & Status...");
-  const healthRes = await fetch("https://alokito-telecom-backend-1.onrender.com/health");
+  const healthRes = await fetch("https://alokito-telecom-backend-sqgt.onrender.com/health");
   const healthData: any = await healthRes.json();
   console.log("   Health Status:", JSON.stringify(healthData));
   if (healthData.status !== "ok" || healthData.database !== "connected") {
@@ -23,16 +23,16 @@ async function main() {
 
   // ── Step 2: Downloads & Static Web Portals ──
   console.log("2️⃣  Verifying Downloads & Web Application Routes on Live Server...");
-  const downloadsRes = await fetch("https://alokito-telecom-backend-1.onrender.com/downloads");
+  const downloadsRes = await fetch("https://alokito-telecom-backend-sqgt.onrender.com/downloads");
   console.log(`   ✅ /downloads portal returned status: ${downloadsRes.status}`);
 
-  const customerApkRes = await fetch("https://alokito-telecom-backend-1.onrender.com/download/customer", { method: "HEAD" });
+  const customerApkRes = await fetch("https://alokito-telecom-backend-sqgt.onrender.com/download/customer", { method: "HEAD" });
   console.log(`   ✅ /download/customer APK returned status: ${customerApkRes.status} (Content-Type: ${customerApkRes.headers.get("content-type")})`);
 
-  const adminApkRes = await fetch("https://alokito-telecom-backend-1.onrender.com/download/admin", { method: "HEAD" });
+  const adminApkRes = await fetch("https://alokito-telecom-backend-sqgt.onrender.com/download/admin", { method: "HEAD" });
   console.log(`   ✅ /download/admin APK returned status: ${adminApkRes.status} (Content-Type: ${adminApkRes.headers.get("content-type")})`);
 
-  const listenerApkRes = await fetch("https://alokito-telecom-backend-1.onrender.com/download/listener", { method: "HEAD" });
+  const listenerApkRes = await fetch("https://alokito-telecom-backend-sqgt.onrender.com/download/listener", { method: "HEAD" });
   console.log(`   ✅ /download/listener APK returned status: ${listenerApkRes.status} (Content-Type: ${listenerApkRes.headers.get("content-type")})\n`);
 
   // ── Step 3: Admin Login ──

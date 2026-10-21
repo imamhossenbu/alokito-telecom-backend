@@ -28,14 +28,14 @@ export class SystemSettingsService {
           customer: {
             latestVersion: "1.0.4",
             buildNumber: 5,
-            downloadUrl: "https://alokito-telecom-backend-1.onrender.com/download/customer",
+            downloadUrl: "https://alokito-telecom-backend-sqgt.onrender.com/download/customer",
             forceUpdate: false,
             releaseNotes: "নতুন ড্রাইভ অফার, ব্যালেন্স অটো-ভেরিফিকেশন ও স্বয়ংক্রিয় অ্যাপ আপডেট সুবিধা।",
           },
           admin: {
             latestVersion: "1.0.3",
             buildNumber: 4,
-            downloadUrl: "https://alokito-telecom-backend-1.onrender.com/download/admin",
+            downloadUrl: "https://alokito-telecom-backend-sqgt.onrender.com/download/admin",
             forceUpdate: false,
             releaseNotes: "অ্যাডমিন রিয়েলটাইম নোটিফিকেশন অ্যালার্ট ও অর্ডার প্রসেসিং আপডেট।",
           },
@@ -48,14 +48,14 @@ export class SystemSettingsService {
           customer: {
             latestVersion: "1.0.4",
             buildNumber: 5,
-            downloadUrl: "https://alokito-telecom-backend-1.onrender.com/download/customer",
+            downloadUrl: "https://alokito-telecom-backend-sqgt.onrender.com/download/customer",
             forceUpdate: false,
             releaseNotes: "নতুন ড্রাইভ অফার, ব্যালেন্স অটো-ভেরিফিকেশন ও স্বয়ংক্রিয় অ্যাপ আপডেট সুবিধা।",
           },
           admin: {
             latestVersion: "1.0.3",
             buildNumber: 4,
-            downloadUrl: "https://alokito-telecom-backend-1.onrender.com/download/admin",
+            downloadUrl: "https://alokito-telecom-backend-sqgt.onrender.com/download/admin",
             forceUpdate: false,
             releaseNotes: "অ্যাডমিন রিয়েলটাইম নোটিফিকেশন অ্যালার্ট ও অর্ডার প্রসেসিং আপডেট।",
           },
@@ -66,14 +66,14 @@ export class SystemSettingsService {
           settings.appVersion.customer = {
             latestVersion: "1.0.7",
             buildNumber: 8,
-            downloadUrl: "https://alokito-telecom-backend-1.onrender.com/download/customer",
+            downloadUrl: "https://alokito-telecom-backend-sqgt.onrender.com/download/customer",
             forceUpdate: false,
             releaseNotes: "লেটেস্ট বিল্ড: ড্রাইভ অফার ক্যাটালগ, ফুল SMS ট্র্যাকিং এবং লাইভ সার্ভিস নোটিশ আপডেট।",
           };
           needSave = true;
         } else {
-          if (!settings.appVersion.customer.downloadUrl) {
-            settings.appVersion.customer.downloadUrl = "https://alokito-telecom-backend-1.onrender.com/download/customer";
+          if (!settings.appVersion.customer.downloadUrl || settings.appVersion.customer.downloadUrl.includes("alokito-telecom-backend-1")) {
+            settings.appVersion.customer.downloadUrl = "https://alokito-telecom-backend-sqgt.onrender.com/download/customer";
             needSave = true;
           }
           if ((settings.appVersion.customer.buildNumber || 0) < 8) {
@@ -88,14 +88,14 @@ export class SystemSettingsService {
           settings.appVersion.admin = {
             latestVersion: "1.0.7",
             buildNumber: 8,
-            downloadUrl: "https://alokito-telecom-backend-1.onrender.com/download/admin",
+            downloadUrl: "https://alokito-telecom-backend-sqgt.onrender.com/download/admin",
             forceUpdate: false,
             releaseNotes: "লেটেস্ট বিল্ড: সঠিক বাংলাদেশ সময় (BST) টাইমজোন ফিক্স ও অর্ডার ম্যানেজমেন্ট আপডেট।",
           };
           needSave = true;
         } else {
-          if (!settings.appVersion.admin.downloadUrl) {
-            settings.appVersion.admin.downloadUrl = "https://alokito-telecom-backend-1.onrender.com/download/admin";
+          if (!settings.appVersion.admin.downloadUrl || settings.appVersion.admin.downloadUrl.includes("alokito-telecom-backend-1")) {
+            settings.appVersion.admin.downloadUrl = "https://alokito-telecom-backend-sqgt.onrender.com/download/admin";
             needSave = true;
           }
           if ((settings.appVersion.admin.buildNumber || 0) < 8) {

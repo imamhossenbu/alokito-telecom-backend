@@ -341,7 +341,7 @@ export function renderAdminAppsPortalPage(data: AdminPortalViewData = {}): strin
         <span class="banner-hint">অ্যাডমিন লিঙ্ক ছাড়া সুরক্ষিত পেজ</span>
       </div>
       <div class="banner-body">
-        <code class="banner-url" id="customerShareUrl">https://alokito-telecom-backend-1.onrender.com/customer-app</code>
+        <code class="banner-url" id="customerShareUrl">https://alokito-telecom-backend-sqgt.onrender.com/customer-app</code>
         <div class="banner-buttons">
           <button onclick="copyCustomerShareLink()" class="btn-banner-copy" id="bannerCopyBtn">
             📋 লিঙ্ক কপি করুন

@@ -156,14 +156,14 @@ const SystemSettingsSchema = new Schema<ISystemSettings>(
       customer: {
         latestVersion: { type: String, default: "1.0.4" },
         buildNumber: { type: Number, default: 5 },
-        downloadUrl: { type: String, default: "https://alokito-telecom-backend-1.onrender.com/download/customer" },
+        downloadUrl: { type: String, default: "https://alokito-telecom-backend-sqgt.onrender.com/download/customer" },
         forceUpdate: { type: Boolean, default: false },
         releaseNotes: { type: String, default: "নতুন ড্রাইভ অফার, ব্যালেন্স অটো-ভেরিফিকেশন ও স্বয়ংক্রিয় অ্যাপ আপডেট সুবিধা।" },
       },
       admin: {
         latestVersion: { type: String, default: "1.0.3" },
         buildNumber: { type: Number, default: 4 },
-        downloadUrl: { type: String, default: "https://alokito-telecom-backend-1.onrender.com/download/admin" },
+        downloadUrl: { type: String, default: "https://alokito-telecom-backend-sqgt.onrender.com/download/admin" },
         forceUpdate: { type: Boolean, default: false },
         releaseNotes: { type: String, default: "অ্যাডমিন রিয়েলটাইম নোটিফিকেশন অ্যালার্ট ও অর্ডার প্রসেসিং আপডেট।" },
       },
