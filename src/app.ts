@@ -158,8 +158,8 @@ export function createApp(): Application {
       const customerVer = settings?.appVersion?.customer;
       const contact = settings?.contactSupport;
       const html = renderCustomerDownloadPage({
-        version: customerVer?.latestVersion || "1.0.7",
-        build: customerVer?.buildNumber || 8,
+        version: customerVer?.latestVersion || "1.0.8",
+        build: customerVer?.buildNumber || 9,
         releaseNotes: customerVer?.releaseNotes,
         whatsapp: contact?.whatsapp || "https://wa.me/8801890000001",
         telegram: contact?.telegram || "https://t.me/alokito_telecom",
@@ -196,10 +196,10 @@ export function createApp(): Application {
       const adminVer = settings?.appVersion?.admin;
 
       const html = renderAdminAppsPortalPage({
-        customerVersion: customerVer?.latestVersion || "1.0.7",
-        customerBuild: customerVer?.buildNumber || 8,
-        adminVersion: adminVer?.latestVersion || "1.0.7",
-        adminBuild: adminVer?.buildNumber || 8,
+        customerVersion: customerVer?.latestVersion || "1.0.8",
+        customerBuild: customerVer?.buildNumber || 9,
+        adminVersion: adminVer?.latestVersion || "1.0.8",
+        adminBuild: adminVer?.buildNumber || 9,
         listenerVersion: "1.0.3",
       });
 

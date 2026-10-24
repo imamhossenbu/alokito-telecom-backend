@@ -3,7 +3,7 @@ import { DriveOfferStatus } from "./driveOffer.model";
 
 export const createDriveOfferBodySchema = z.object({
   operatorId: z.string().min(1, "Operator is required"),
-  offerName: z.string().min(1).max(200),
+  offerName: z.string().min(1).max(500),
   category: z.string().min(1),
   offerType: z.string().min(1).default("DRIVE"),
   offerValue: z.string().min(1).default("Standard"),
@@ -19,7 +19,7 @@ export type CreateDriveOfferBody = z.infer<typeof createDriveOfferBodySchema>;
 
 export const updateDriveOfferBodySchema = z.object({
   operatorId: z.string().min(1).optional(),
-  offerName: z.string().min(1).max(200).optional(),
+  offerName: z.string().min(1).max(500).optional(),
   category: z.string().min(1).optional(),
   offerType: z.string().min(1).optional(),
   offerValue: z.string().min(1).optional(),

@@ -3,7 +3,7 @@ import { OfferStatus } from "./offer.model";
 
 export const createOfferBodySchema = z.object({
   operatorId: z.string().min(1, "Operator is required"),
-  name: z.string().min(1).max(200),
+  name: z.string().min(1).max(500),
   category: z.string().min(1),
   type: z.string().min(1).default("REGULAR"),
   offerValue: z.string().min(1).default("Standard"),
@@ -18,7 +18,7 @@ export type CreateOfferBody = z.infer<typeof createOfferBodySchema>;
 
 export const updateOfferBodySchema = z.object({
   operatorId: z.string().min(1).optional(),
-  name: z.string().min(1).max(200).optional(),
+  name: z.string().min(1).max(500).optional(),
   category: z.string().min(1).optional(),
   type: z.string().min(1).optional(),
   offerValue: z.string().min(1).optional(),

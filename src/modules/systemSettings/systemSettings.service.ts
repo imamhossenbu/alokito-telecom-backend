@@ -76,21 +76,21 @@ export class SystemSettingsService {
             settings.appVersion.customer.downloadUrl = "https://alokito-telecom-backend-sqgt.onrender.com/download/customer";
             needSave = true;
           }
-          if ((settings.appVersion.customer.buildNumber || 0) < 8) {
-            settings.appVersion.customer.buildNumber = 8;
-            settings.appVersion.customer.latestVersion = "1.0.7";
-            settings.appVersion.customer.releaseNotes = "লেটেস্ট বিল্ড: ড্রাইভ অফার ক্যাটালগ, ফুল SMS ট্র্যাকিং এবং লাইভ সার্ভিস নোটিশ আপডেট।";
+          if ((settings.appVersion.customer.buildNumber || 0) < 9) {
+            settings.appVersion.customer.buildNumber = 9;
+            settings.appVersion.customer.latestVersion = "1.0.8";
+            settings.appVersion.customer.releaseNotes = "লেটেস্ট বিল্ড: মাল্টিলাইন অফার টাইটেল প্রদর্শন ও বিস্তারিত ডেসক্রিপশন সাপোর্ট।";
             needSave = true;
           }
         }
 
         if (!settings.appVersion.admin) {
           settings.appVersion.admin = {
-            latestVersion: "1.0.7",
-            buildNumber: 8,
+            latestVersion: "1.0.8",
+            buildNumber: 9,
             downloadUrl: "https://alokito-telecom-backend-sqgt.onrender.com/download/admin",
             forceUpdate: false,
-            releaseNotes: "লেটেস্ট বিল্ড: সঠিক বাংলাদেশ সময় (BST) টাইমজোন ফিক্স ও অর্ডার ম্যানেজমেন্ট আপডেট।",
+            releaseNotes: "লেটেস্ট বিল্ড: মাল্টিলাইন অফার টাইটেল প্রদর্শন ও বিস্তারিত ডেসক্রিপশন সাপোর্ট।",
           };
           needSave = true;
         } else {
@@ -98,10 +98,10 @@ export class SystemSettingsService {
             settings.appVersion.admin.downloadUrl = "https://alokito-telecom-backend-sqgt.onrender.com/download/admin";
             needSave = true;
           }
-          if ((settings.appVersion.admin.buildNumber || 0) < 8) {
-            settings.appVersion.admin.buildNumber = 8;
-            settings.appVersion.admin.latestVersion = "1.0.7";
-            settings.appVersion.admin.releaseNotes = "লেটেস্ট বিল্ড: সঠিক বাংলাদেশ সময় (BST) টাইমজোন ফিক্স ও অর্ডার ম্যানেজমেন্ট আপডেট।";
+          if ((settings.appVersion.admin.buildNumber || 0) < 9) {
+            settings.appVersion.admin.buildNumber = 9;
+            settings.appVersion.admin.latestVersion = "1.0.8";
+            settings.appVersion.admin.releaseNotes = "লেটেস্ট বিল্ড: মাল্টিলাইন অফার টাইটেল প্রদর্শন ও বিস্তারিত ডেসক্রিপশন সাপোর্ট।";
             needSave = true;
           }
         }
