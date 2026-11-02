@@ -16,6 +16,13 @@ import { notificationService } from "../notifications/notification.service";
 import { broadcastToAdmins } from "../../config/socket";
 import { logger } from "../../config/logger";
 
+function escapeHtml(value: unknown): string {
+  return String(value ?? "-")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
 function validateStateTransition(current: OrderStatusType, target: OrderStatusType) {
   const allowed = ORDER_STATE_TRANSITIONS[current];
   if (!allowed || !allowed.includes(target)) {
@@ -39,6 +46,16 @@ export const orderService = {
     const mongoSession = await mongoose.startSession();
     try {
       let result;
+      let telegramInfo: {
+        customerName?: string;
+        customerPhone?: string;
+        operatorId?: Types.ObjectId;
+        offerName?: string;
+        offerValue?: string;
+        validity?: string;
+        activationCode?: string;
+        price?: number;
+      } = {};
       await mongoSession.withTransaction(async () => {
         // 0. Verify Customer PIN
         const user = await userRepository.findById(userId, true);
@@ -158,6 +175,17 @@ export const orderService = {
         order.walletTransactionId = wTx._id;
         await order.save({ session: mongoSession });
 
+        telegramInfo = {
+          customerName: user.name,
+          customerPhone: user.phone,
+          operatorId: offer.operatorId,
+          offerName: offer.name || offer.offerName,
+          offerValue: offer.offerValue,
+          validity: offer.validity,
+          activationCode: offer.activationCode,
+          price: sellingPrice,
+        };
+
         result = {
           orderId: order._id.toString(),
           orderNumber: order.orderNumber,
@@ -210,6 +238,33 @@ export const orderService = {
       } catch (err) {
         // Socket broadcast shouldn't fail order transaction
       }
+
+      // Telegram alert to the admin group (same chats as payment SMS alerts).
+      // Fire-and-forget so a slow Telegram API never delays the customer.
+      void (async () => {
+        const operator = telegramInfo.operatorId
+          ? await operatorRepository.findById(telegramInfo.operatorId.toString()).catch(() => null)
+          : null;
+        const timeBd = new Date().toLocaleString("en-GB", { timeZone: "Asia/Dhaka", hour12: true });
+        const text =
+          `🛒 <b>নতুন অফার অর্ডার এসেছে!</b>\n` +
+          `━━━━━━━━━━━━━━━━━━━━\n` +
+          `🧾 <b>অর্ডার নং:</b> <code>${escapeHtml((result as any).orderNumber)}</code>\n` +
+          `📶 <b>অপারেটর:</b> ${escapeHtml(operator?.name)}\n` +
+          `🎁 <b>অফার:</b> ${escapeHtml(telegramInfo.offerName)}\n` +
+          (telegramInfo.offerValue ? `📦 <b>প্যাক:</b> ${escapeHtml(telegramInfo.offerValue)}\n` : "") +
+          (telegramInfo.validity ? `⏳ <b>মেয়াদ:</b> ${escapeHtml(telegramInfo.validity)}\n` : "") +
+          `💵 <b>মূল্য:</b> ৳${poishaToBdt(telegramInfo.price ?? 0).toFixed(2)}\n` +
+          `📱 <b>যে নম্বরে অফার দিতে হবে:</b> <code>${escapeHtml(phone)}</code>\n` +
+          (telegramInfo.activationCode ? `🔢 <b>কোড:</b> <code>${escapeHtml(telegramInfo.activationCode)}</code>\n` : "") +
+          `━━━━━━━━━━━━━━━━━━━━\n` +
+          `👤 <b>কাস্টমার:</b> ${escapeHtml(telegramInfo.customerName)} (<code>${escapeHtml(telegramInfo.customerPhone)}</code>)\n` +
+          `🕒 <b>সময়:</b> ${timeBd}\n` +
+          `📊 <b>স্ট্যাটাস:</b> 🟡 পেন্ডিং\n` +
+          `ℹ️ অফার চালু করে এডমিন অ্যাপ থেকে অর্ডারটি Complete করুন।`;
+        const { smsWebhookService } = await import("../smsWebhook/smsWebhook.service");
+        await smsWebhookService.notifyAdminsTelegram(text);
+      })().catch((err) => logger.warn({ err }, "Order Telegram alert failed"));
 
       return result;
     } finally {

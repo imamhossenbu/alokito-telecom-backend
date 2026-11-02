@@ -76,21 +76,21 @@ export class SystemSettingsService {
             settings.appVersion.customer.downloadUrl = "https://alokito-telecom-backend-sqgt.onrender.com/download/customer";
             needSave = true;
           }
-          if ((settings.appVersion.customer.buildNumber || 0) < 9) {
-            settings.appVersion.customer.buildNumber = 9;
-            settings.appVersion.customer.latestVersion = "1.0.8";
-            settings.appVersion.customer.releaseNotes = "লেটেস্ট বিল্ড: মাল্টিলাইন অফার টাইটেল প্রদর্শন ও বিস্তারিত ডেসক্রিপশন সাপোর্ট।";
+          if ((settings.appVersion.customer.buildNumber || 0) < 10) {
+            settings.appVersion.customer.buildNumber = 10;
+            settings.appVersion.customer.latestVersion = "1.0.9";
+            settings.appVersion.customer.releaseNotes = "লেটেস্ট বিল্ড: সব অফার এখন দেখা যাবে (GP, Banglalink সহ), সব বাটনের সমান উচ্চতা ও উন্নত ডিজাইন।";
             needSave = true;
           }
         }
 
         if (!settings.appVersion.admin) {
           settings.appVersion.admin = {
-            latestVersion: "1.0.8",
-            buildNumber: 9,
+            latestVersion: "1.0.9",
+            buildNumber: 10,
             downloadUrl: "https://alokito-telecom-backend-sqgt.onrender.com/download/admin",
             forceUpdate: false,
-            releaseNotes: "লেটেস্ট বিল্ড: মাল্টিলাইন অফার টাইটেল প্রদর্শন ও বিস্তারিত ডেসক্রিপশন সাপোর্ট।",
+            releaseNotes: "লেটেস্ট বিল্ড: সব অফার এখন দেখা যাবে (GP, Banglalink সহ), সব বাটনের সমান উচ্চতা ও উন্নত ডিজাইন।",
           };
           needSave = true;
         } else {
@@ -98,10 +98,10 @@ export class SystemSettingsService {
             settings.appVersion.admin.downloadUrl = "https://alokito-telecom-backend-sqgt.onrender.com/download/admin";
             needSave = true;
           }
-          if ((settings.appVersion.admin.buildNumber || 0) < 9) {
-            settings.appVersion.admin.buildNumber = 9;
-            settings.appVersion.admin.latestVersion = "1.0.8";
-            settings.appVersion.admin.releaseNotes = "লেটেস্ট বিল্ড: মাল্টিলাইন অফার টাইটেল প্রদর্শন ও বিস্তারিত ডেসক্রিপশন সাপোর্ট।";
+          if ((settings.appVersion.admin.buildNumber || 0) < 10) {
+            settings.appVersion.admin.buildNumber = 10;
+            settings.appVersion.admin.latestVersion = "1.0.9";
+            settings.appVersion.admin.releaseNotes = "লেটেস্ট বিল্ড: সব অফার এখন দেখা যাবে (GP, Banglalink সহ), সব বাটনের সমান উচ্চতা ও উন্নত ডিজাইন।";
             needSave = true;
           }
         }

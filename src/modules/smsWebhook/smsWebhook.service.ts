@@ -194,6 +194,36 @@ export const smsWebhookService = {
   },
 
   /**
+   * Send an HTML message to the same admin Telegram chats that receive
+   * payment SMS alerts. Never throws.
+   */
+  async notifyAdminsTelegram(text: string) {
+    try {
+      const settings = await systemSettingsService.getSettings();
+      if (settings.smsIntegration?.isTelegramEnabled === false) return;
+      const botToken =
+        settings.smsIntegration?.telegramBotToken ||
+        process.env.TELEGRAM_BOT_TOKEN ||
+        "8974788916:AAEvyNJ3JOO0PPHI9UwPwXNp01T4HJ6XxdA";
+      const targetChatIds = Array.from(
+        new Set(
+          [
+            settings.smsIntegration?.telegramChatId,
+            process.env.TELEGRAM_ADMIN_CHAT_ID,
+            process.env.TELEGRAM_PERSONAL_CHAT_ID,
+            "-1004457142501",
+          ].filter((id): id is string => Boolean(id && id !== "99999999"))
+        )
+      );
+      for (const cid of targetChatIds) {
+        await this.sendTelegramRawMessage(botToken, cid, text, "HTML").catch(() => {});
+      }
+    } catch (err) {
+      logger.warn({ err }, "Failed to send admin Telegram notification");
+    }
+  },
+
+  /**
    * Send Telegram message via Bot API with fallback
    */
   async sendTelegramRawMessage(botToken: string, chatId: string, text: string, parseMode: "HTML" | "Markdown" = "HTML") {
