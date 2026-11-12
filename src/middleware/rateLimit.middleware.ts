@@ -3,6 +3,18 @@ import { Request } from "express";
 import { env } from "../config/env";
 
 /**
+ * Real client IP. On Render the request passes Cloudflare -> Render proxy ->
+ * app, so with `trust proxy 1` req.ip is a Cloudflare edge IP shared by every
+ * user in the same city — which made all users share one rate-limit bucket.
+ * Cloudflare sets cf-connecting-ip (and overwrites any client-sent value).
+ */
+function clientIp(req: Request): string {
+  const cf = req.headers["cf-connecting-ip"] ?? req.headers["true-client-ip"];
+  const value = Array.isArray(cf) ? cf[0] : cf;
+  return value?.trim() || req.ip || "unknown";
+}
+
+/**
  * Creates a rate limiter scoped by IP + (optional) account/device identifier
  * so that limits can't be trivially bypassed just by rotating IPs, and so
  * that one abusive account doesn't get to hide behind a shared IP (spec 85).
@@ -28,7 +40,7 @@ export function createRateLimiter(options: {
     skip: () => env.isDevelopment || env.isTest,
     keyGenerator: (req: Request) => {
       const extra = keyExtra ? keyExtra(req) : "";
-      return `rl:${req.ip}:${extra}`;
+      return `rl:${clientIp(req)}:${extra}`;
     },
     handler: (_req, res) => {
       res.status(429).json({
