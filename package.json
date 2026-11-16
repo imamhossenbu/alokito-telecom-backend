@@ -10,7 +10,8 @@
     "db:clean": "tsx scripts/clean-database-production.ts",
     "lint": "eslint \"src/**/*.ts\"",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "admin:set": "tsx scripts/set-admin.ts"
   },
   "engines": {
     "node": ">=18.0.0"
