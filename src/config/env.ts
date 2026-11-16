@@ -65,7 +65,7 @@ const envSchema = z.object({
 
   LOG_LEVEL: z.string().default("info"),
 
-  CORS_ORIGINS: z.string().default("http://localhost:3000, https://alokito-telecom-backend-sqgt.onrender.com, http://localhost:59211"),
+  CORS_ORIGINS: z.string().default("http://localhost:3000, https://alokito-telecom-backend-7coy.onrender.com, http://localhost:59211"),
 });
 
 const parsed = envSchema.safeParse(process.env);

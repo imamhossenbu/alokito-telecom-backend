@@ -1,4 +1,4 @@
-const BASE_URL = process.env.TEST_API_URL || 'https://alokito-telecom-backend-sqgt.onrender.com';
+const BASE_URL = process.env.TEST_API_URL || 'https://alokito-telecom-backend-7coy.onrender.com';
 
 interface TestResult {
   endpoint: string;

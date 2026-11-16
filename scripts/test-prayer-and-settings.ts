@@ -1,6 +1,6 @@
 import "dotenv/config";
 
-const BASE_URL = "https://alokito-telecom-backend-sqgt.onrender.com/api/v1";
+const BASE_URL = "https://alokito-telecom-backend-7coy.onrender.com/api/v1";
 
 async function testPrayerAndSettings() {
   console.log("===============================================================================");

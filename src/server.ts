@@ -36,7 +36,7 @@ async function bootstrap(): Promise<void> {
   setInterval(() => {
     try {
       const httpModule = require("https");
-      httpModule.get("https://alokito-telecom-backend-sqgt.onrender.com/health", (res: any) => {
+      httpModule.get("https://alokito-telecom-backend-7coy.onrender.com/health", (res: any) => {
         // Keep container warm
       }).on("error", () => {});
     } catch (_) {}
