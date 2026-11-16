@@ -76,7 +76,7 @@ export function createApp(): Application {
   app.use("/admin", express.static(path.join(process.cwd(), "public", "admin-web"), {
     setHeaders: (res, filePath) => {
       if (filePath.endsWith("index.html") || filePath.endsWith(".js") || filePath.endsWith(".json")) {
-        res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate, max-age=0");
+        res.setHeader("Cache-Control", "no-cache");
         res.setHeader("Pragma", "no-cache");
         res.setHeader("Expires", "0");
       } else if (filePath.endsWith(".wasm") || filePath.endsWith(".ttf") || filePath.endsWith(".png") || filePath.endsWith(".jpg") || filePath.endsWith(".jpeg") || filePath.endsWith(".svg") || filePath.endsWith(".woff2")) {
@@ -85,7 +85,7 @@ export function createApp(): Application {
     },
   }));
   app.get(["/admin", "/admin/*"], (_req, res) => {
-    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate, max-age=0");
+    res.setHeader("Cache-Control", "no-cache");
     res.setHeader("Pragma", "no-cache");
     res.setHeader("Expires", "0");
     res.sendFile(path.join(process.cwd(), "public", "admin-web", "index.html"));
@@ -94,7 +94,7 @@ export function createApp(): Application {
   app.use("/customer", express.static(path.join(process.cwd(), "public", "customer-web"), {
     setHeaders: (res, filePath) => {
       if (filePath.endsWith("index.html") || filePath.endsWith(".js") || filePath.endsWith(".json")) {
-        res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate, max-age=0");
+        res.setHeader("Cache-Control", "no-cache");
         res.setHeader("Pragma", "no-cache");
         res.setHeader("Expires", "0");
       } else if (filePath.endsWith(".wasm") || filePath.endsWith(".ttf") || filePath.endsWith(".png") || filePath.endsWith(".jpg") || filePath.endsWith(".jpeg") || filePath.endsWith(".svg") || filePath.endsWith(".woff2")) {
@@ -103,7 +103,7 @@ export function createApp(): Application {
     },
   }));
   app.get(["/customer", "/customer/*"], (_req, res) => {
-    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate, max-age=0");
+    res.setHeader("Cache-Control", "no-cache");
     res.setHeader("Pragma", "no-cache");
     res.setHeader("Expires", "0");
     res.sendFile(path.join(process.cwd(), "public", "customer-web", "index.html"));
@@ -126,6 +126,14 @@ export function createApp(): Application {
       target = "drive-offer-customer.apk";
     } else if (raw === "customer-v7a" || raw === "customer-v7a.apk" || raw === "drive-offer-customer-v7a.apk") {
       target = "drive-offer-customer-v7a.apk";
+    }
+
+    // Bandwidth saver: APKs are 17-29 MB each. When APK_DOWNLOAD_BASE_URL is set
+    // (e.g. a GitHub Releases "latest/download" URL), redirect there instead of
+    // streaming the file out of Render's metered bandwidth.
+    const externalBase = process.env.APK_DOWNLOAD_BASE_URL?.trim().replace(/\/+$/, "");
+    if (externalBase && /^[a-z0-9._-]+\.apk$/i.test(target)) {
+      return res.redirect(302, `${externalBase}/${target}`);
     }
 
     const filePath = path.join(process.cwd(), "public", "downloads", target);
