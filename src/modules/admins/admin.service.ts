@@ -14,37 +14,38 @@ import { signAccessToken } from "../../shared/utils/jwt";
 import { poishaToBdt } from "../../shared/utils/money";
 import { storageProvider } from "../../integrations/storage/cloudinary.provider";
 import { env } from "../../config/env";
+import { logger } from "../../config/logger";
 import type { AdminLoginBody } from "../auth/auth.schema";
 
 export const adminAuthService = {
+  /**
+   * Bootstraps the very first admin on an empty database only.
+   *
+   * Credentials come from ADMIN_SEED_EMAIL / ADMIN_SEED_PASSWORD (never from
+   * source code), and existing admins are never touched — previously two admins
+   * with hardcoded passwords were created and force-reactivated on every boot.
+   */
   async seedDefaultAdmin() {
-    const defaultAdmins = [
-      { name: "Super Admin", email: "admin@telecom.com", password: "admin123" },
-      { name: "Drive Offer Admin", email: "admin@driveoffer.com", password: "admin1234" },
-    ];
+    const adminCount = await AdminModel.estimatedDocumentCount();
+    if (adminCount > 0) return;
 
-    for (const item of defaultAdmins) {
-      const emailNorm = normalizeEmail(item.email);
-      const exists = await adminRepository.findByEmailNormalized(emailNorm, true);
-      const hash = await argon2.hash(item.password);
-      if (!exists) {
-        await adminRepository.create({
-          name: item.name,
-          email: item.email,
-          emailNormalized: emailNorm,
-          passwordHash: hash,
-          role: "ADMIN",
-          status: AdminStatus.ACTIVE,
-        });
-      } else {
-        // Do NOT overwrite passwordHash if admin already exists!
-        // This preserves password changes made by the admin.
-        await AdminModel.updateOne(
-          { _id: exists._id },
-          { $set: { status: AdminStatus.ACTIVE } },
-        );
-      }
+    const email = process.env.ADMIN_SEED_EMAIL?.trim();
+    const password = process.env.ADMIN_SEED_PASSWORD;
+    if (!email || !password || password.length < 10) {
+      logger.warn(
+        "[seed] No admins exist. Set ADMIN_SEED_EMAIL and ADMIN_SEED_PASSWORD (min 10 chars) to create the first admin.",
+      );
+      return;
     }
+
+    await adminRepository.create({
+      name: "Super Admin",
+      email,
+      emailNormalized: normalizeEmail(email),
+      passwordHash: await argon2.hash(password),
+      role: "ADMIN",
+      status: AdminStatus.ACTIVE,
+    });
   },
 
   async login(body: AdminLoginBody) {
