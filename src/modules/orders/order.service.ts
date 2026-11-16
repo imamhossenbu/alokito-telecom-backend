@@ -607,7 +607,8 @@ export const orderService = {
     }
     if (data.price !== undefined) {
       const p = Number(data.price);
-      order.price = p < 10000 ? bdtToPoisha(p) : p;
+      // `price` in the admin PATCH body is always BDT (admin Edit Order sends BDT); never guess the unit.
+      order.price = bdtToPoisha(p);
     }
     if (data.notes !== undefined) {
       (order as any).notes = data.notes;
